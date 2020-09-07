@@ -3,18 +3,11 @@
 
 #include <string>
 #include <unordered_map>
+#include "buffer.h"
+#include "lru_cache.h"
 
 namespace logfind
 {
-    struct Buffer
-    {
-        char *buffer;       // buffer
-        uint32_t bufsize;   // Size of the buffer
-        uint32_t datalen;   // Amount of data read into the buffer
-        uint32_t curpos;    // Current read position into the buffer
-        uint64_t offset;    // File offset of first char in buffer
-    };
-
     class ReadFile
     {
     public:
@@ -24,17 +17,18 @@ namespace logfind
         bool open(const char *);
         char get();
         void readLine(uint64_t lineoff, char *linebuf, uint32_t size);
+        bool eof();
     private:
-        void read_();
-        uint32_t bytesToRead();
-        Buffer *getBufferFromOffset(uint64_t offset);
+        int read_();
+        Buffer *getBufferFromFileOffset(uint64_t offset);
     private:
         int fd_;
         uint64_t offset_;
         uint64_t lineno_;
         std::unordered_map<uint64_t, uint64_t> lines_; // lineno => fileoffset
-        Buffer *prev_;
         Buffer *buffer_;
+        LRUCache cache_;
+        bool eof_;
     };
 /*
     class WriteFile

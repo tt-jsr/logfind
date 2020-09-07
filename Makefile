@@ -5,7 +5,7 @@ LDFLAGS=-g
 LIBS = -lstdc++ 
 DEPS = file.h ahocorasick.h aho_queue.h aho_text.h aho_trie.h
 
-SRC	= main.cpp file.cpp  
+SRC	= main.cpp file.cpp buffer.cpp  
 
 OBJS  = $(SRC:.cpp=.o) ahocorasick.o aho_queue.o aho_trie.o
 
@@ -26,6 +26,9 @@ main.o: main.cpp
 
 file.o: file.cpp
 	$(CC) $(CPPFLAGS) -c file.cpp -o file.o 
+
+buffer.o: buffer.cpp
+	$(CC) $(CPPFLAGS) -c buffer.cpp -o buffer.o 
 
 clean: 
 	rm $(OBJS) logfind

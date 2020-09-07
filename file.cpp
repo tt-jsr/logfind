@@ -4,48 +4,24 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+#include <assert.h>
 
 namespace logfind
 {
-    const int bufsize = 1024*1024;
-
-    Buffer *CreateBuffer()
-    {
-        Buffer *pb = new Buffer();
-        pb->bufsize = bufsize;
-        pb->buffer = new char[bufsize];
-        pb->offset = 0;
-        pb->curpos = 0;
-        pb->datalen = 0;
-        return pb;
-    }
-
-    bool containsOffset(Buffer *pBuf, uint64_t offset)
-    {
-        if (offset >= pBuf->offset && offset < pBuf->offset + pBuf->datalen)
-            return true;
-        return false;
-    }
-
-    uint32_t getBufferOffsetFromFileOffset(Buffer *pBuf, uint64_t offset)
-    {
-        return offset - pBuf->offset;
-    }
     
     ReadFile::ReadFile()
     :fd_(-1)
     ,buffer_(nullptr)
     ,offset_(0)
     ,lineno_(0)
+    ,cache_(10)
+    ,eof_(false)
     {
-        buffer_ = CreateBuffer();
-        prev_ = CreateBuffer();
-        lines_[1] = 0;
+        lines_[0] = 0;
     }
 
     ReadFile::~ReadFile()
     {
-        delete[] buffer_;
         close(fd_);
     }
 
@@ -65,74 +41,58 @@ namespace logfind
         return true;
     }
 
-    Buffer *ReadFile::getBufferFromOffset(uint64_t offset)
+    Buffer *ReadFile::getBufferFromFileOffset(uint64_t offset)
     {
-        if (containsOffset(buffer_, offset))
-            return buffer_;
-        if (containsOffset(prev_, offset))
-            return prev_;
-        return nullptr;
+        uint64_t page = (offset/BUFSIZE) * BUFSIZE;
+        return cache_.get(page);
     }
 
     void ReadFile::readLine(uint64_t lineno, char *linebuf, uint32_t size)
     {
         uint64_t off = lines_[lineno];
-        Buffer *pBuf = getBufferFromOffset(off);
+        Buffer *pBuf = getBufferFromFileOffset(off);
         if (pBuf == nullptr)
         {
             strcpy(linebuf, "<not found>");
             return;
         }
-        uint32_t bufpos = getBufferOffsetFromFileOffset(pBuf, off);
-        const char *p = pBuf->buffer + bufpos;
-        uint32_t count = bufpos;
-        char *dest = linebuf;
-        while (*p != '\n' && count < pBuf->datalen)
-        {
-            *dest++ = *p++;
-            ++count;
-        }
-        *dest = '\0';
+        // Buffer may not contain the entire line
+        pBuf->readline(off, linebuf, size);
     }
 
-    uint32_t ReadFile::bytesToRead()
+    int ReadFile::read_()
     {
-        uint32_t readsize = buffer_->bufsize - buffer_->datalen;
-        if (readsize == 0)
+        if (buffer_ == nullptr || buffer_->isFull())
         {
-            std::swap(buffer_, prev_);
-            buffer_->datalen = 0;
-            buffer_->curpos = 0;
-            buffer_->offset = offset_;
-            return buffer_->bufsize;
+            buffer_ = cache_.get_lru();
+            buffer_->reset(offset_);
+            cache_.add(buffer_);
         }
-        return readsize;
+        int r = read(fd_, buffer_->bufpos(), buffer_->availableBytes());
+        if (r <= 0)
+            eof_ = true;
+        if (r > 0)
+            buffer_->datasize(r);
+        return r;
     }
 
-    void ReadFile::read_()
+    bool ReadFile::eof()
     {
-        uint32_t readsize = bytesToRead();
-        int r = read(fd_, buffer_->buffer+buffer_->datalen, readsize);
-        if (r < 0)
-        {
-            buffer_->datalen = 0;
-        }
-        if (r >= 0)
-            buffer_->datalen += r;
+        return eof_;
     }
 
     char ReadFile::get()
     {
-        if (buffer_->datalen == 0)
-            return 0;   // eof
-        if (buffer_->curpos == buffer_->datalen)
+        char c = buffer_->getchar();
+        if (c == 0)
         {
-            read_();
+            if (read_() <= 0)
+            {
+                return 0;
+            }
+            c = buffer_->getchar();
         }
-        if (buffer_->datalen == 0)
-            return 0;   // eof
         ++offset_;
-        char c = buffer_->buffer[buffer_->curpos++];
         if (c == '\n')
         {
             lines_[++lineno_] = offset_;
