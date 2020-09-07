@@ -6,17 +6,19 @@ Config sample
 
 /pattern/ {
     # If present, print n lines before the match
-    before=n
+    !before/n
 
     # If present, print n lines after the match
-    after=n 
+    !after/n
 
-    # If present, search for the pattern in the line, print if found
-    printif=pattern
+    !echo/found
+
+    # Search for a sub pattern/
+    /pattern/{commands...}
 
     # If present, skips to the location in the logfile where the match is found
     # No other matching is peformed until the pattern is found
-    skipto=pattern
+    !skipto/pattern
 
     # Print format, if it does not exist, print the line
     # ${lineno}  Line number
@@ -25,35 +27,53 @@ Config sample
     # ${line:w}  Print the line, max width w
     # ${line:m,n} Print the line columns m through n
     # ${time}    Print the timestamp of the log line.
-    printfmt=${lineno}:${offset}
+    $printfmt/${lineno}:${offset}
+
+    # Send output to this file
+    !file/junk
 
     # If present, exit when pattern is found
-    exit
+    !exit
 }
 
 
 ##################################################################
 default {
-    printfmt=${lineno}:${offset}
+    $printfmt/${lineno}:${offset}
 }
 
-TIME {
-    start=2018-05-11 18:00:00
-    end=2018-05-11
+range {
+    /2018-05-11 18:00:00/starttime
+    /2018-05-11/endtime
 }
 
 OrderId {
     /ExecutionReport/ {
-        print-er
+        !print-er
     }
     /OrderCancelReject/ {
-        print-ocr
+        !print-ocr
     }
+}
+
+end {
+    !echo/"Number of trades: $trade\n"
+    !echo/"Number of NOS: $nos\n"
 }
 
 /S T A R T/p
 /S H U T D O W N/p
 /Orderserver is ready/p
 /9fbe0-345f-7822/OrderId
-/LEADER |/p
+/LEADER |/ {
+    !print/"The leader is: $line\n"
+}
+
+/xxxx-xxx-xxxxx-xxx/{
+    /EXEC_TYPE_TRADE/ {
+        $trade/+1
+    }
+    /EXEC_TYPE_NOS/ {
+        $nos/+1
+}
 

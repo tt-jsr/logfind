@@ -6,18 +6,18 @@
 #include "ahocorasick.h"
 #include "aho_trie.h"
 
-void aho_init(struct ahocorasick * restrict aho)
+void aho_init(struct ahocorasick * aho)
 {
     memset(aho, 0x00, sizeof(struct ahocorasick));
 }
 
-void aho_destroy(struct ahocorasick * restrict aho)
+void aho_destroy(struct ahocorasick * aho)
 {
     aho_clear_match_text(aho);
     aho_clear_trie(aho);
 }
 
-int aho_add_match_text(struct ahocorasick * restrict aho, const char* text, unsigned int len)
+int aho_add_match_text(struct ahocorasick * aho, const char* text, unsigned int len)
 {
     struct aho_text_t* a_text = NULL;
     if (aho->accumulate_text_id == AHO_MAX_TEXT_ID)
@@ -57,7 +57,7 @@ lack_free_mem:
     return -1;
 }
 
-bool aho_del_match_text(struct ahocorasick * restrict aho, const int id)
+bool aho_del_match_text(struct ahocorasick * aho, const int id)
 {
     struct aho_text_t* iter = NULL;
     for (iter = aho->text_list_head; iter != NULL; iter = iter->next)
@@ -94,7 +94,7 @@ bool aho_del_match_text(struct ahocorasick * restrict aho, const int id)
     return false;
 }
 
-void aho_clear_match_text(struct ahocorasick * restrict aho)
+void aho_clear_match_text(struct ahocorasick * aho)
 {
     for(int i = 0; i < aho->accumulate_text_id; i++)
     {
@@ -106,7 +106,7 @@ void aho_clear_match_text(struct ahocorasick * restrict aho)
 }
 
 
-void aho_create_trie(struct ahocorasick * restrict aho)
+void aho_create_trie(struct ahocorasick * aho)
 {
     struct aho_text_t* iter = NULL;
     aho_init_trie(&(aho->trie));
@@ -122,18 +122,18 @@ void aho_create_trie(struct ahocorasick * restrict aho)
     //aho_print_trie(&(aho->trie));
 }
 
-void aho_clear_trie(struct ahocorasick * restrict aho)
+void aho_clear_trie(struct ahocorasick * aho)
 {
     aho_destroy_trie(&aho->trie);
 }
 
-unsigned int aho_findtext(struct ahocorasick * restrict aho, char (*getchar)(void *), void *arg)
+unsigned int aho_findtext(struct ahocorasick * aho, char (*getchar)(void *), void *arg)
 {
-    int i = 0;
+    unsigned long long i = 0;
     int match_count = 0;
     struct aho_trie_node* travasal_node = NULL;
     unsigned long long int lineno = 0;
-    unsigned long long int linepos = 0;
+    unsigned long long int lineoff = 0;
 
     travasal_node = &(aho->trie.root);
 
@@ -148,7 +148,7 @@ unsigned int aho_findtext(struct ahocorasick * restrict aho, char (*getchar)(voi
         if (c == '\n')
         {
             ++lineno;
-            linepos = i+1;
+            lineoff = i+1;
         }
         result = aho_find_trie_node(&travasal_node, c);
         if (result == NULL)
@@ -167,6 +167,7 @@ unsigned int aho_findtext(struct ahocorasick * restrict aho, char (*getchar)(voi
 
         match_count++;
         match.lineno = lineno;
+        match.lineoff = lineoff;
         if (aho->callback_match)
         {
             aho->callback_match(aho->callback_arg, &match);
@@ -176,7 +177,7 @@ unsigned int aho_findtext(struct ahocorasick * restrict aho, char (*getchar)(voi
     return match_count;
 }
 
-inline void aho_register_match_callback(struct ahocorasick * restrict aho,
+inline void aho_register_match_callback(struct ahocorasick * aho,
         void (*callback_match)(void* arg, struct aho_match_t*),
         void *arg)
 {
@@ -184,7 +185,7 @@ inline void aho_register_match_callback(struct ahocorasick * restrict aho,
     aho->callback_match = callback_match;
 }
 
-void aho_print_match_text(struct ahocorasick * restrict aho)
+void aho_print_match_text(struct ahocorasick * aho)
 {
     struct aho_text_t* iter = NULL;
     for (iter = aho->text_list_head; iter != NULL; iter = iter->next)

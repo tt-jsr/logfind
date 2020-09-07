@@ -6,12 +6,12 @@
 
 struct aho_match_t
 {
-    int id;
-    unsigned long long int pos;
-    unsigned long long int lineno;
-    unsigned long long int linepos;
+    int id;                             // id of pattern returned from aho_add_match_text()
+    unsigned long long int pos;         // Match at offset into file
+    unsigned long long int lineno;      // Line number match was found
+    unsigned long long int lineoff;     // File offset of line
 
-    int len;
+    int len;                            // Length of match
 };
 
 struct ahocorasick
@@ -28,21 +28,21 @@ struct ahocorasick
     void* callback_arg;
 };
 
-void aho_init(struct ahocorasick * restrict aho);
-void aho_destroy(struct ahocorasick * restrict aho);
+void aho_init(struct ahocorasick * aho);
+void aho_destroy(struct ahocorasick * aho);
 
-int aho_add_match_text(struct ahocorasick * restrict aho, const char* text, unsigned int len);
-bool aho_del_match_text(struct ahocorasick * restrict aho, const int id);
-void aho_clear_match_text(struct ahocorasick * restrict aho);
+int aho_add_match_text(struct ahocorasick * aho, const char* text, unsigned int len);
+bool aho_del_match_text(struct ahocorasick * aho, const int id);
+void aho_clear_match_text(struct ahocorasick * aho);
 
-void aho_create_trie(struct ahocorasick * restrict aho);
-void aho_clear_trie(struct ahocorasick * restrict aho);
+void aho_create_trie(struct ahocorasick * aho);
+void aho_clear_trie(struct ahocorasick * aho);
 
-unsigned int aho_findtext(struct ahocorasick * restrict aho, char (*getchar)(void *), void *arg);
+unsigned int aho_findtext(struct ahocorasick * aho, char (*getchar)(void *), void *arg);
 
-void aho_register_match_callback(struct ahocorasick * restrict aho,
+void aho_register_match_callback(struct ahocorasick * aho,
         void (*callback_match)(void* arg, struct aho_match_t*),
         void *arg);
 
 /* for debug */
-void aho_print_match_text(struct ahocorasick * restrict aho);
+void aho_print_match_text(struct ahocorasick * aho);
