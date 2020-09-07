@@ -1,0 +1,59 @@
+See https://github.com/morenice/ahocorasick
+for aho-corasick algorithm
+
+
+Config sample
+
+/pattern/ {
+    # If present, print n lines before the match
+    before=n
+
+    # If present, print n lines after the match
+    after=n 
+
+    # If present, search for the pattern in the line, print if found
+    printif=pattern
+
+    # If present, skips to the location in the logfile where the match is found
+    # No other matching is peformed until the pattern is found
+    skipto=pattern
+
+    # Print format, if it does not exist, print the line
+    # ${lineno}  Line number
+    # ${offset}  File offset
+    # ${match}   Print just the match pattern (which will be the input pattern)
+    # ${line:w}  Print the line, max width w
+    # ${line:m,n} Print the line columns m through n
+    # ${time}    Print the timestamp of the log line.
+    printfmt=${lineno}:${offset}
+
+    # If present, exit when pattern is found
+    exit
+}
+
+
+##################################################################
+default {
+    printfmt=${lineno}:${offset}
+}
+
+TIME {
+    start=2018-05-11 18:00:00
+    end=2018-05-11
+}
+
+OrderId {
+    /ExecutionReport/ {
+        print-er
+    }
+    /OrderCancelReject/ {
+        print-ocr
+    }
+}
+
+/S T A R T/p
+/S H U T D O W N/p
+/Orderserver is ready/p
+/9fbe0-345f-7822/OrderId
+/LEADER |/p
+
