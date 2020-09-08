@@ -1,34 +1,37 @@
 #include <stdio.h>
-#include "file.h"
+#include "aho_context.h"
 
-extern "C"
+class MyTest : public logfind::AhoFileContext
 {
-#include "ahocorasick.h"
-}
-
-extern "C" void callback_match_total(void *arg, struct aho_match_t* m)
-{
-    long long int* match_total = (long long int*)arg;
-    (*match_total)++;
-}
-
-extern "C" void callback_match_pos(void *arg, struct aho_match_t* m)
-{
-    logfind::ReadFile *pFile = (logfind::ReadFile *)arg;
-
-    //printf("match id: %d position: %llu length: %d lineno: %llu linepos: %llu\n", m->id, m->pos, m->len, m->lineno, m->lineoff);
-    char buf[4096];
-    pFile->readLine(m->lineno, buf, sizeof(buf));
-    printf("%s\n", buf);
-}
-
-extern "C" char lf_getchar(void *arg)
-{
-    logfind::ReadFile *pFile = (logfind::ReadFile *)arg;
-    return pFile->get();
-}
+protected:
+    void on_match(struct aho_match_t* m)
+    {
+        char buf[4096];
+        file.readLine(m->lineno, buf, sizeof(buf));
+        printf("%s\n", buf);
+    }
+};
 
 void test()
+{
+    MyTest ctx;
+
+    ctx.add_match_text("S T A R T");
+    ctx.add_match_text("Orderserver is ready");
+    ctx.add_match_text("loadbalancer invoked");
+    ctx.add_match_text("build");
+
+    if (ctx.open("../fsh/cme-noisy.log") == false)
+    {
+        printf ("Failed to open file\n");
+        return;
+    }
+
+    ctx.start();
+}
+
+/*
+void test2()
 {
     struct ahocorasick aho;
     long long int match_total = 0;
@@ -36,13 +39,10 @@ void test()
 
     aho_init(&aho);
 
-    id[0] = aho_add_match_text(&aho, "S T A R T", 9);
-    id[1] = aho_add_match_text(&aho, "Orderserver is ready", 19);
-    id[2] = aho_add_match_text(&aho, "loadbalancer invoked", 19);
-    id[3] = aho_add_match_text(&aho, "build", 5);
+    id[0] = aho_add_match_text(&aho, "bb77a423-f475-434b-a336-3bd09a32c464", 35);
 
     logfind::ReadFile file;
-    if (file.open("../fsh/cme-noisy.log") == false)
+    if (file.open("../fsh/cme.clean") == false)
     {
         printf ("Failed to open file\n");
         return;
@@ -54,9 +54,10 @@ void test()
 
     aho_destroy(&aho);
 }
-
+*/
 int main(int /*argc*/, char ** /*argv*/)
 {
     test();
     return 0;
 }
+
