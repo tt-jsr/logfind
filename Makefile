@@ -3,9 +3,9 @@ CDEBUG = -g -O0
 CPPFLAGS = $(CDEBUG) -I.
 LDFLAGS=-g
 LIBS = -lstdc++ 
-DEPS = file.h ahocorasick.h aho_queue.h aho_text.h aho_trie.h
+DEPS = file.h ahocorasick.h aho_queue.h aho_text.h aho_trie.h aho_context.h buffer.h lru_cache.h
 
-SRC	= main.cpp file.cpp buffer.cpp  
+SRC	= main.cpp file.cpp buffer.cpp aho_context.cpp
 
 OBJS  = $(SRC:.cpp=.o) ahocorasick.o aho_queue.o aho_trie.o
 
@@ -29,6 +29,9 @@ file.o: file.cpp
 
 buffer.o: buffer.cpp
 	$(CC) $(CPPFLAGS) -c buffer.cpp -o buffer.o 
+
+aho_context.o: aho_context.cpp
+	$(CC) $(CPPFLAGS) -c aho_context.cpp -o aho_context.o 
 
 clean: 
 	rm $(OBJS) logfind
