@@ -29,15 +29,16 @@ namespace logfind
             aho_destroy(&aho_);
         }
 
-        void add_match_text(const char *p, uint32_t len)
+        int add_match_text(const char *p, uint32_t len)
         {
             int id = aho_add_match_text(&aho_, p, len);
             ids_.push_back(id);
+            return id;
         }
 
-        void add_match_text(const char *p)
+        int add_match_text(const char *p)
         {
-            add_match_text(p, strlen(p));
+            return add_match_text(p, strlen(p));
         }
 
         virtual char get() = 0;
