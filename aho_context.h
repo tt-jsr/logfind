@@ -18,21 +18,22 @@ namespace logfind
 
     class AhoContext;
     class AhoLineContext;
+    class AhoFileContext;
     class PatternActions;
 
     using PatternActionsPtr = std::shared_ptr<PatternActions>;
+    using AhoLineContextPtr = std::shared_ptr<AhoLineContext>;
+    using AhoFileContextPtr = std::shared_ptr<AhoFileContext>;
 
     class PatternActions
     {
     public:
         PatternActions();
         void on_match(AhoContext *ctx, struct aho_match_t* m);
-        int add_match_text(const char *p, uint32_t len, PatternActionsPtr actions);
-        int add_match_text(const char *p, PatternActionsPtr actions);
         void before(uint8_t n);
         void after(uint8_t n);
         void file(const char *name, bool append);
-        void search(std::shared_ptr<AhoLineContext>);
+        AhoLineContextPtr search();
         void print();
         void named_actions(const char *);
     private:
@@ -45,6 +46,8 @@ namespace logfind
     };
 
     PatternActionsPtr MakePatternActions();
+    AhoLineContextPtr MakeAhoLineContext();
+    AhoFileContextPtr MakeAhoFileContext();
 
 
     class AhoContext
@@ -52,8 +55,8 @@ namespace logfind
     public:
         AhoContext();
         ~AhoContext();
-        int add_match_text(const char *p, uint32_t len, PatternActionsPtr actions);
-        int add_match_text(const char *p, PatternActionsPtr actions);
+        PatternActionsPtr add_match_text(const char *p, uint32_t len);
+        PatternActionsPtr add_match_text(const char *p);
         void build_trie();
         virtual char get() = 0;
         virtual bool readLine(uint64_t lineno, linebuf& l) = 0;

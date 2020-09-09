@@ -17,7 +17,7 @@ namespace logfind
     Application::Application()
     {
         theApp = this;
-        pCtx.reset(new AhoFileContext());
+        pCtx_.reset(new AhoFileContext());
         exit_flag = false;
     }
 
@@ -29,6 +29,11 @@ namespace logfind
     bool Application::is_exit()
     {
         return exit_flag;
+    }
+
+    AhoFileContextPtr Application::search()
+    {
+        return pCtx_;
     }
 
     int Application::file(const char *name, bool append)
@@ -69,6 +74,8 @@ namespace logfind
             assert(false);
             break;
         case LINEBUF_NONE:
+            break;
+        case LINEBUF_INVALID:
             assert(false);
             break;
         }

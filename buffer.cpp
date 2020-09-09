@@ -47,6 +47,7 @@ namespace logfind
             ++numwriten;
         }
         *dest = '\0';
+        lb.len = numwriten;
         return true;
     }
 

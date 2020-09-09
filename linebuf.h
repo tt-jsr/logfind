@@ -6,6 +6,7 @@ namespace logfind
 {
     enum
     {
+        LINEBUF_INVALID,
         LINEBUF_NONE,
         LINEBUF_FREE,
         LINEBUF_POOL
@@ -13,6 +14,9 @@ namespace logfind
 
     struct linebuf
     {
+        linebuf()
+        :buf(nullptr), len(0), bufsize(0), flags(LINEBUF_INVALID)
+        {}
         char *buf;
         uint32_t len;
         uint32_t bufsize;

@@ -15,6 +15,16 @@ namespace logfind
         return std::make_shared<PatternActions>();
     }
 
+    AhoLineContextPtr MakeAhoLineContext()
+    {
+        return std::make_shared<AhoLineContext>();
+    }
+
+    AhoFileContextPtr MakeAhoFileContext()
+    {
+        return std::make_shared<AhoFileContext>();
+    }
+
     AhoContext::AhoContext()
     {
         aho_init(&aho_);
@@ -25,16 +35,17 @@ namespace logfind
         aho_destroy(&aho_);
     }
 
-    int AhoContext::add_match_text(const char *p, uint32_t len, PatternActionsPtr actions)
+    PatternActionsPtr AhoContext::add_match_text(const char *p, uint32_t len)
     {
+        auto pa = logfind::MakePatternActions();
         int id = aho_add_match_text(&aho_, p, len);
-        match_actions.emplace(id, actions);
-        return id;
+        match_actions.emplace(id, pa);
+        return pa;
     }
 
-    int AhoContext::add_match_text(const char *p, PatternActionsPtr actions)
+    PatternActionsPtr AhoContext::add_match_text(const char *p)
     {
-        return add_match_text(p, strlen(p), actions);
+        return add_match_text(p, strlen(p));
     }
 
     void AhoContext::build_trie()
@@ -127,6 +138,7 @@ namespace logfind
             {
                 linebuf lb;
                 ctx->readLine(m->lineno, lb);
+                //printf ("len: %d: %s\n", lb.len, lb.buf);
                 pCtx_->find(lb.buf, lb.len);
                 theApp->free(lb);
             }
@@ -190,12 +202,13 @@ namespace logfind
         fd_ = theApp->file(name, append);
     }
     
-    void PatternActions::search(std::shared_ptr<AhoLineContext> ctx)
+    AhoLineContextPtr PatternActions::search()
     {
         if (pCtx_)
-            return;
+            return pCtx_;
         commands_.push_back("search");
-        pCtx_ = ctx;
+        pCtx_ = MakeAhoLineContext();
+        return pCtx_;
     }
 
     void PatternActions::named_actions(const char *name)

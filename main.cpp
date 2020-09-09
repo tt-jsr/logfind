@@ -7,16 +7,19 @@
 void test()
 {
     logfind::Application app;
-    auto pa = logfind::MakePatternActions();
+
+    auto fileSearch = app.search();
+    auto pa = fileSearch->add_match_text("S T A R T");
     pa->print();
+    pa = fileSearch->add_match_text("Orderserver is ready");
+    pa->print();
+    pa = fileSearch->add_match_text("loadbalancer invoked");
+    pa->print();
+    pa = fileSearch->add_match_text("build");
+    pa->print();
+    fileSearch->build_trie();
 
-    app.pCtx->add_match_text("S T A R T", pa);
-    app.pCtx->add_match_text("Orderserver is ready", pa);
-    app.pCtx->add_match_text("loadbalancer invoked", pa);
-    app.pCtx->add_match_text("build", pa);
-    app.pCtx->build_trie();
-
-    if (app.pCtx->find("../fsh/cme-noisy.log") == false)
+    if (fileSearch->find("../fsh/cme-noisy.log") == false)
     {
         printf ("Failed to open file\n");
     }
@@ -25,10 +28,18 @@ void test()
 void test2()
 {
     logfind::Application app;
-    app.pCtx->add_match_text("bb77a423-f475-434b-a336-3bd09a32c464", logfind::MakePatternActions());
-    app.pCtx->build_trie();
+    auto fileSearch = app.search();
+    auto pa = fileSearch->add_match_text("bb77a423-f475-434b-a336-3bd09a32c464");
+    fileSearch->build_trie();
 
-    if (app.pCtx->find("../fsh/cme.clean") == false)
+    auto lineSearch = pa->search();
+    pa = lineSearch->add_match_text("EXEC_TYPE_TRADE");
+    pa->print();
+    pa = lineSearch->add_match_text("EXEC_TYPE_NEW");
+    pa->print();
+    lineSearch->build_trie();
+
+    if (fileSearch->find("../fsh/cme.clean") == false)
     {
         printf ("Failed to open file\n");
     }
@@ -36,7 +47,7 @@ void test2()
 
 int main(int /*argc*/, char ** /*argv*/)
 {
-    test();
+    test2();
     return 0;
 }
 
