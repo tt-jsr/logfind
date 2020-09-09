@@ -25,30 +25,8 @@ namespace logfind
     using AhoLineContextPtr = std::shared_ptr<AhoLineContext>;
     using AhoFileContextPtr = std::shared_ptr<AhoFileContext>;
 
-    class PatternActions
-    {
-    public:
-        PatternActions();
-        void on_match(AhoContext *ctx, struct aho_match_t* m);
-        void before(uint8_t n);
-        void after(uint8_t n);
-        void file(const char *name, bool append);
-        AhoLineContextPtr search();
-        void print();
-        void named_actions(const char *);
-    private:
-        void printlines(AhoContext *ctx, struct aho_match_t* m, int32_t start, uint32_t end);
-        std::shared_ptr<AhoLineContext> pCtx_;
-        uint8_t before_;
-        uint8_t after_;
-        std::vector<std::string> commands_;
-        int fd_;
-    };
-
-    PatternActionsPtr MakePatternActions();
     AhoLineContextPtr MakeAhoLineContext();
     AhoFileContextPtr MakeAhoFileContext();
-
 
     class AhoContext
     {

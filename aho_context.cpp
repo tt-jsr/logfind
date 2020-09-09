@@ -4,17 +4,13 @@
 #include "linebuf.h"
 #include "aho_context.h"
 #include "application.h"
+#include "pattern_actions.h"
 
 extern "C" void callback_match(void *arg, struct aho_match_t* m);
 extern "C" char aho_getchar(void *arg);
 
 namespace logfind
 {
-    PatternActionsPtr MakePatternActions()
-    {
-        return std::make_shared<PatternActions>();
-    }
-
     AhoLineContextPtr MakeAhoLineContext()
     {
         return std::make_shared<AhoLineContext>();
@@ -111,112 +107,7 @@ namespace logfind
         lb.bufsize = line.capacity();
         lb.flags = LINEBUF_NONE;
     }
-
-    /*****************************************************************/
-    PatternActions::PatternActions()
-    :before_(0)
-    ,after_(0)
-    ,fd_(1)
-    {
-    }
-    void PatternActions::on_match(AhoContext *ctx, struct aho_match_t* m)
-    {
-        for (std::string& cmd : commands_)
-        {
-            if (cmd == "after")
-            {
-                printlines(ctx, m, m->lineno, m->lineno+after_);
-            }
-            else if (cmd == "before")
-            {
-                uint32_t start = m->lineno-before_;
-                if (before_ > m->lineno)
-                    start = 0;
-                printlines(ctx, m, start, m->lineno);
-            }
-            else if (cmd == "search")
-            {
-                linebuf lb;
-                ctx->readLine(m->lineno, lb);
-                //printf ("len: %d: %s\n", lb.len, lb.buf);
-                pCtx_->find(lb.buf, lb.len);
-                theApp->free(lb);
-            }
-            else if (cmd == "print")
-            {
-                linebuf lb;
-                ctx->readLine(m->lineno, lb);
-                dprintf(fd_, "%s\n", lb.buf);
-                theApp->free(lb);
-            }
-            else if (cmd == "exit")
-            {
-                theApp->exit();
-            }
-            else
-            {
-                // must be a named pattern actions
-                PatternActionsPtr pa = theApp->GetNamedPattern(cmd.c_str());
-                if (pa)
-                {
-                    pa->on_match(ctx, m);
-                }
-            }
-        }
-    }
-
-    void PatternActions::printlines(AhoContext *ctx, struct aho_match_t* m, int32_t start, uint32_t end)
-    {
-        linebuf lb;
-        for (uint32_t l = start; l < end; ++l)
-        {
-            ctx->readLine(l, lb);
-            dprintf(fd_, "%s\n", lb.buf);
-            theApp->free(lb);
-        }
-    }
-
-    void PatternActions::before(uint8_t n)
-    {
-        if (before_)
-            return;
-        commands_.push_back("before");
-        before_ = n;
-    }
-
-    void PatternActions::after(uint8_t n)
-    {
-        if (after_)
-            return;
-        commands_.push_back("after");
-        after_ = n;
-    }
-
-    void PatternActions::print()
-    {
-        commands_.push_back("print");
-    }
-
-    void PatternActions::file(const char *name, bool append)
-    {
-        fd_ = theApp->file(name, append);
-    }
-    
-    AhoLineContextPtr PatternActions::search()
-    {
-        if (pCtx_)
-            return pCtx_;
-        commands_.push_back("search");
-        pCtx_ = MakeAhoLineContext();
-        return pCtx_;
-    }
-
-    void PatternActions::named_actions(const char *name)
-    {
-        commands_.push_back(name);
-    }
 }
-
 
 extern "C" char aho_getchar(void *arg)
 {

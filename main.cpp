@@ -2,6 +2,8 @@
 #include "lru_cache.h"
 #include "application.h"
 #include "aho_context.h"
+#include "pattern_actions.h"
+#include "builtins.h"
 
 
 void test()
@@ -10,13 +12,13 @@ void test()
 
     auto fileSearch = app.search();
     auto pa = fileSearch->add_match_text("S T A R T");
-    pa->print();
+    pa->add_command(new logfind::Print());
     pa = fileSearch->add_match_text("Orderserver is ready");
-    pa->print();
+    pa->add_command(new logfind::Print());
     pa = fileSearch->add_match_text("loadbalancer invoked");
-    pa->print();
+    pa->add_command(new logfind::Print());
     pa = fileSearch->add_match_text("build");
-    pa->print();
+    pa->add_command(new logfind::Print());
     fileSearch->build_trie();
 
     if (fileSearch->find("../fsh/cme-noisy.log") == false)
@@ -29,15 +31,16 @@ void test2()
 {
     logfind::Application app;
     auto fileSearch = app.search();
-    auto pa = fileSearch->add_match_text("bb77a423-f475-434b-a336-3bd09a32c464");
+    auto filePa = fileSearch->add_match_text("bb77a423-f475-434b-a336-3bd09a32c464");
     fileSearch->build_trie();
 
-    auto lineSearch = pa->search();
-    pa = lineSearch->add_match_text("EXEC_TYPE_TRADE");
-    pa->print();
-    pa = lineSearch->add_match_text("EXEC_TYPE_NEW");
-    pa->print();
-    lineSearch->build_trie();
+    logfind::LineSearch *searchCmd = new logfind::LineSearch();
+    filePa->add_command(searchCmd);
+    auto pa = searchCmd->add_match_text("EXEC_TYPE_TRADE");
+    pa->add_command(new logfind::Print());
+    pa = searchCmd->add_match_text("EXEC_TYPE_NEW");
+    pa->add_command(new logfind::Print());
+    searchCmd->build_trie();
 
     if (fileSearch->find("../fsh/cme.clean") == false)
     {
