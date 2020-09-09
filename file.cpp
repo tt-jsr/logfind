@@ -1,10 +1,16 @@
-#include "file.h"
+#include <string>
+#include <unordered_map>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
 #include <assert.h>
+#include "linebuf.h"
+#include "buffer.h"
+#include "lru_cache.h"
+#include "file.h"
+#include "application.h"
 
 namespace logfind
 {
@@ -47,17 +53,19 @@ namespace logfind
         return cache_.get(page);
     }
 
-    void ReadFile::readLine(uint64_t lineno, char *linebuf, uint32_t size)
+    bool ReadFile::readLine(uint64_t lineno, linebuf& lb)
     {
         uint64_t off = lines_[lineno];
         Buffer *pBuf = getBufferFromFileOffset(off);
         if (pBuf == nullptr)
         {
-            strcpy(linebuf, "<not found>");
-            return;
+            theApp->alloc(lb);
+            strcpy(lb.buf, "<not found>");
+            lb.len = strlen(lb.buf);
+            return true;
         }
         // Buffer may not contain the entire line
-        pBuf->readline(off, linebuf, size);
+        return pBuf->readline(off, lb);
     }
 
     int ReadFile::read_()

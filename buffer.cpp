@@ -1,3 +1,6 @@
+#include <cstdint>
+#include "application.h"
+#include "linebuf.h"
 #include "buffer.h"
 
 namespace logfind
@@ -29,18 +32,22 @@ namespace logfind
         return fileoff - offset;
     }
 
-    void Buffer::readline(uint64_t fileoffset, char *linebuf, uint32_t bufsize)
+    bool Buffer::readline(uint64_t fileoffset, linebuf& lb)
     {
+        theApp->alloc(lb);
         uint32_t bufpos = getBufferOffsetFromFileOffset(fileoffset);
         const char *p = buffer + bufpos;
         uint32_t count = bufpos;
-        char *dest = linebuf;
-        while (*p != '\n' && count < datalen)
+        char *dest = lb.buf;
+        uint32_t numwriten(0);
+        while (*p != '\n' && count < datalen && numwriten < lb.bufsize)
         {
             *dest++ = *p++;
             ++count;
+            ++numwriten;
         }
         *dest = '\0';
+        return true;
     }
 
     bool Buffer::eob()

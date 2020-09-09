@@ -6,12 +6,12 @@ Config sample
 
 /pattern/ {
     # If present, print n lines before the match
-    !before/n
+    before --num=4
 
     # If present, print n lines after the match
-    !after/n
+    after --num=4
 
-    !echo/found
+    print "found"
 
     # Search for a sub pattern/
     /pattern/{commands...}
@@ -38,50 +38,51 @@ Config sample
 
 
 ##################################################################
-default {
-    $printfmt/${lineno}:${offset}
-}
-
-range {
-    /2018-05-11 18:00:00/ {
-        $enable/1
-    }
-    /2018-05-11/ {
-        $enable/0
-    }
-}
-
 OrderId {
     /ExecutionReport/ {
-        !print-er
+        print-er
+        print
     }
     /OrderCancelReject/ {
-        !print-ocr
+        print-ocr
+        print
     }
 }
 
 bof {
-    !echo/"Start search"
+     print "Start search"
 }
 
 eof {
-    !echo/"Number of trades: $trade\n"
-    !echo/"Number of NOS: $nos\n"
+    print "Number of trades: $trade\n"
+    print "Number of NOS: $nos\n"
 }
 
-/S T A R T/p
-/S H U T D O W N/p
-/Orderserver is ready/p
-/9fbe0-345f-7822/OrderId
+/S T A R T/ {
+    print
+}
+
+/S H U T D O W N/ {
+    print
+}
+
+/Orderserver is ready/ {
+    print
+}
+
+/9fbe0-345f-7822/ {
+    OrderId
+}
+
 /LEADER |/ {
-    !print/"The leader is: $line\n"
+    print "The leader is: $line\n"
 }
 
-/xxxx-xxx-xxxxx-xxx/{
+/xxxx-xxx-xxxxx-xxx/ {
     /EXEC_TYPE_TRADE/ {
-        $trade/+1
+        $trade = +1
     }
     /EXEC_TYPE_NOS/ {
-        $nos/+1
+        $nos += 1
+    }
 }
-

@@ -1,11 +1,20 @@
-#include "aho_context.h"
 #include <assert.h>
+#include <cstdint>
+#include "lru_cache.h"
+#include "linebuf.h"
+#include "aho_context.h"
+#include "application.h"
 
 extern "C" void callback_match(void *arg, struct aho_match_t* m);
 extern "C" char aho_getchar(void *arg);
 
 namespace logfind
 {
+    PatternActionsPtr MakePatternActions()
+    {
+        return std::make_shared<PatternActions>();
+    }
+
     AhoContext::AhoContext()
     {
         aho_init(&aho_);
@@ -16,14 +25,14 @@ namespace logfind
         aho_destroy(&aho_);
     }
 
-    int AhoContext::add_match_text(const char *p, uint32_t len, PatternActions& actions)
+    int AhoContext::add_match_text(const char *p, uint32_t len, PatternActionsPtr actions)
     {
         int id = aho_add_match_text(&aho_, p, len);
         match_actions.emplace(id, actions);
         return id;
     }
 
-    int AhoContext::add_match_text(const char *p, PatternActions& actions)
+    int AhoContext::add_match_text(const char *p, PatternActionsPtr actions)
     {
         return add_match_text(p, strlen(p), actions);
     }
@@ -37,7 +46,7 @@ namespace logfind
     {
         auto it = match_actions.find(m->id);
         assert(it != match_actions.end());
-        it->second.on_match(this, m);
+        it->second->on_match(this, m);
     }
 
     /**************************************************************/
@@ -55,9 +64,9 @@ namespace logfind
         return file.get();
     }
 
-    void AhoFileContext::readLine(uint64_t lineno, char *buf, uint32_t len)
+    bool AhoFileContext::readLine(uint64_t lineno, linebuf& lb)
     {
-        file.readLine(lineno, buf, len);
+        return file.readLine(lineno, lb);
     }
 
     /*********************************************************************/
@@ -80,18 +89,93 @@ namespace logfind
         return line[pos++];
     }
 
-    void AhoLineContext::readLine(uint64_t lineno, char *buf, uint32_t len)
+    bool AhoLineContext::readLine(uint64_t lineno, linebuf& lb)
     {
-        strncpy(buf, line.c_str(), len);
-        buf[len-1] = '\0';
+        lb.buf = (char *)line.c_str();
+        lb.len = line.size();
+        lb.bufsize = line.capacity();
+        lb.flags = LINEBUF_NONE;
     }
 
     /*****************************************************************/
     void PatternActions::on_match(AhoContext *ctx, struct aho_match_t* m)
     {
-        char buf[4096];
-        ctx->readLine(m->lineno, buf, sizeof(buf));
-        printf("%s\n", buf);
+        for (std::string& cmd : commands_)
+        {
+            if (cmd == "after")
+            {
+                printlines(ctx, m, m->lineno, m->lineno+after_);
+            }
+            else if (cmd == "before")
+            {
+                uint32_t start = m->lineno-before_;
+                if (before_ > m->lineno)
+                    start = 0;
+                printlines(ctx, m, start, m->lineno);
+            }
+            else if (cmd == "search")
+            {
+                linebuf lb;
+                ctx->readLine(m->lineno, lb);
+                pCtx_->find(lb.buf, lb.len);
+                theApp->free(lb);
+            }
+            else if (cmd == "print")
+            {
+                linebuf lb;
+                ctx->readLine(m->lineno, lb);
+                printf("%s\n", lb.buf);
+                theApp->free(lb);
+            }
+        }
+    }
+
+    void PatternActions::printlines(AhoContext *ctx, struct aho_match_t* m, int32_t start, uint32_t end)
+    {
+        linebuf lb;
+        for (uint32_t l = start; l < end; ++l)
+        {
+            ctx->readLine(l, lb);
+            printf("%s\n", lb.buf);
+            theApp->free(lb);
+        }
+    }
+
+    void PatternActions::before(uint8_t n)
+    {
+        if (before_)
+            return;
+        commands_.push_back("before");
+        before_ = n;
+    }
+
+    void PatternActions::after(uint8_t n)
+    {
+        if (after_)
+            return;
+        commands_.push_back("after");
+        after_ = n;
+    }
+
+    void PatternActions::print()
+    {
+        commands_.push_back("print");
+    }
+
+    void PatternActions::file(const char *name)
+    {
+        if (!outfile_.empty())
+            return;
+        commands_.push_back("file");
+        outfile_ = name;
+    }
+    
+    void PatternActions::search(std::shared_ptr<AhoLineContext> ctx)
+    {
+        if (pCtx_)
+            return;
+        commands_.push_back("search");
+        pCtx_ = ctx;
     }
 }
 

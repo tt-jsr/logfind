@@ -5,7 +5,10 @@
 
 namespace logfind
 {
+    struct linebuf;
+
     static const int BUFSIZE = 1024*1024;
+
     class Buffer
     {
     public:
@@ -21,7 +24,7 @@ namespace logfind
         bool eob();     // end of buffer
         void reset(uint64_t fileoffset);
         char getchar();
-        void readline(uint64_t fileoffset, char *linebuf, uint32_t bufsize);
+        bool readline(uint64_t fileoffset, linebuf&);
     private:
         char *buffer;       // buffer
         uint32_t bufsize;   // Size of the buffer

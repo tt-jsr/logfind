@@ -1,13 +1,12 @@
 #ifndef FILE_H_
 #define FILE_H_
 
-#include <string>
-#include <unordered_map>
-#include "buffer.h"
-#include "lru_cache.h"
 
 namespace logfind
 {
+    class Buffer;
+    struct linebuf;
+
     class ReadFile
     {
     public:
@@ -16,7 +15,7 @@ namespace logfind
         // null for stdin
         bool open(const char *);
         char get();
-        void readLine(uint64_t lineoff, char *linebuf, uint32_t size);
+        bool readLine(uint64_t lineoff, linebuf&);
         bool eof();
     private:
         int read_();
