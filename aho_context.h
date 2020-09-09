@@ -25,21 +25,23 @@ namespace logfind
     class PatternActions
     {
     public:
+        PatternActions();
         void on_match(AhoContext *ctx, struct aho_match_t* m);
         int add_match_text(const char *p, uint32_t len, PatternActionsPtr actions);
         int add_match_text(const char *p, PatternActionsPtr actions);
         void before(uint8_t n);
         void after(uint8_t n);
-        void file(const char *name);
+        void file(const char *name, bool append);
         void search(std::shared_ptr<AhoLineContext>);
         void print();
+        void named_actions(const char *);
     private:
         void printlines(AhoContext *ctx, struct aho_match_t* m, int32_t start, uint32_t end);
         std::shared_ptr<AhoLineContext> pCtx_;
         uint8_t before_;
         uint8_t after_;
-        std::string outfile_;
         std::vector<std::string> commands_;
+        int fd_;
     };
 
     PatternActionsPtr MakePatternActions();

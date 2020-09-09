@@ -30,10 +30,10 @@ Config sample
     $printfmt/${lineno}:${offset}
 
     # Send output to this file
-    !file/junk
+    file "junk"
 
     # If present, exit when pattern is found
-    !exit
+    exit
 }
 
 

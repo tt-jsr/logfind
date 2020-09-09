@@ -61,6 +61,8 @@ namespace logfind
 
     char AhoFileContext::get() 
     {
+        if (theApp->is_exit())
+            return 0;
         return file.get();
     }
 
@@ -84,6 +86,8 @@ namespace logfind
 
     char AhoLineContext::get()
     {
+        if (theApp->is_exit())
+            return 0;
         if (pos == line.size())
             return 0;
         return line[pos++];
@@ -98,6 +102,12 @@ namespace logfind
     }
 
     /*****************************************************************/
+    PatternActions::PatternActions()
+    :before_(0)
+    ,after_(0)
+    ,fd_(1)
+    {
+    }
     void PatternActions::on_match(AhoContext *ctx, struct aho_match_t* m)
     {
         for (std::string& cmd : commands_)
@@ -124,8 +134,21 @@ namespace logfind
             {
                 linebuf lb;
                 ctx->readLine(m->lineno, lb);
-                printf("%s\n", lb.buf);
+                dprintf(fd_, "%s\n", lb.buf);
                 theApp->free(lb);
+            }
+            else if (cmd == "exit")
+            {
+                theApp->exit();
+            }
+            else
+            {
+                // must be a named pattern actions
+                PatternActionsPtr pa = theApp->GetNamedPattern(cmd.c_str());
+                if (pa)
+                {
+                    pa->on_match(ctx, m);
+                }
             }
         }
     }
@@ -136,7 +159,7 @@ namespace logfind
         for (uint32_t l = start; l < end; ++l)
         {
             ctx->readLine(l, lb);
-            printf("%s\n", lb.buf);
+            dprintf(fd_, "%s\n", lb.buf);
             theApp->free(lb);
         }
     }
@@ -162,12 +185,9 @@ namespace logfind
         commands_.push_back("print");
     }
 
-    void PatternActions::file(const char *name)
+    void PatternActions::file(const char *name, bool append)
     {
-        if (!outfile_.empty())
-            return;
-        commands_.push_back("file");
-        outfile_ = name;
+        fd_ = theApp->file(name, append);
     }
     
     void PatternActions::search(std::shared_ptr<AhoLineContext> ctx)
@@ -176,6 +196,11 @@ namespace logfind
             return;
         commands_.push_back("search");
         pCtx_ = ctx;
+    }
+
+    void PatternActions::named_actions(const char *name)
+    {
+        commands_.push_back(name);
     }
 }
 
