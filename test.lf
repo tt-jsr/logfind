@@ -1,0 +1,16 @@
+/S T A R T/ {
+    print
+}
+
+/Orderserver is ready/ {
+    print
+}
+
+/loadbalancer invoked/ {
+    print
+}
+
+/build/ {
+    print
+}
+

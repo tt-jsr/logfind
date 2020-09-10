@@ -40,14 +40,10 @@ namespace logfind
         {
             cmd->aho_match_ = m;
             cmd->pCtx_ = ctx;
+            cmd->pattern_actions_ = this;
             cmd->on_command(fd_, m->lineno, lb);
         }
         theApp->free(lb);
-    }
-
-    void PatternActions::file(const char *name, bool append)
-    {
-        fd_ = theApp->file(name, append);
     }
 }
 

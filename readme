@@ -24,10 +24,9 @@ Config sample
     # ${lineno}  Line number
     # ${offset}  File offset
     # ${match}   Print just the match pattern (which will be the input pattern)
-    # ${line:w}  Print the line, max width w
+    # ${line:m,}  Print the line, from m to eol
+    # ${line:,n}  Print the line, from bol to n
     # ${line:m,n} Print the line columns m through n
-    # ${time}    Print the timestamp of the log line.
-    $printfmt/${lineno}:${offset}
 
     # Send output to this file
     file "junk"
@@ -85,4 +84,8 @@ eof {
     /EXEC_TYPE_NOS/ {
         $nos += 1
     }
+}
+
+/ExecutionReport/ {
+    print-timestamp
 }

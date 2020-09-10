@@ -4,6 +4,7 @@
 #include "aho_context.h"
 #include "pattern_actions.h"
 #include "builtins.h"
+#include "parse.h"
 
 
 void test()
@@ -50,7 +51,20 @@ void test2()
 
 int main(int /*argc*/, char ** /*argv*/)
 {
-    test2();
+    logfind::Application app;
+    logfind::Parse parse;
+    if (parse.parse("test.lf") == false)
+    {
+        printf ("Failed to open/parse test.lf\n");
+        return 1;
+    }
+
+    logfind::AhoFileContextPtr ptr = app.search();
+    if (ptr->find("../fsh/cme-noisy.log") == false)
+    {
+        printf ("Failed to open file\n");
+        return 1;
+    }
     return 0;
 }
 

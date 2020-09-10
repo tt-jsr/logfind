@@ -8,7 +8,7 @@
 
 namespace logfind
 {
-    void After::on_parse(const std::string&)
+    void After::parse(const std::string&)
     {
     }
 
@@ -29,7 +29,7 @@ namespace logfind
 
     /*********************************************************************/
 
-    void Before::on_parse(const std::string&)
+    void Before::parse(const std::string&)
     {
     }
 
@@ -52,7 +52,7 @@ namespace logfind
 
     /*********************************************************************/
 
-    void Print::on_parse(const std::string&)
+    void Print::parse(const std::string&)
     {
     }
 
@@ -68,7 +68,7 @@ namespace logfind
         lineSearch_ = MakeAhoLineContext();
     }
 
-    void LineSearch::on_parse(const std::string&)
+    void LineSearch::parse(const std::string&)
     {
     }
 
@@ -94,7 +94,7 @@ namespace logfind
 
     /*********************************************************************/
 
-    void Exit::on_parse(const std::string&)
+    void Exit::parse(const std::string&)
     {
     }
 
@@ -105,7 +105,7 @@ namespace logfind
 
     /*********************************************************************/
 
-    void NamedPatternActions::on_parse(const std::string&)
+    void NamedPatternActions::parse(const std::string&)
     {
     }
 
@@ -117,7 +117,38 @@ namespace logfind
             pa->on_match(pCtx_, aho_match_);
         }
     }
+
     /*********************************************************************/
 
+    File::File()
+    :append_(false)
+    {}
+
+    void File::parse(const std::string&)
+    {
+    }
+
+    void File::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    {
+        pattern_actions_->fd_ = theApp->file(name_.c_str(), append_);
+    }
+
+    /*********************************************************************/
+
+    Builtin *BuiltinFactory(const std::string& name)
+    {
+        if (name == "after")
+            return new After();
+        else if (name == "before")
+            return new Before();
+        else if (name == "print")
+            return new Print();
+        else if (name == "exit")
+            return new Exit();
+        else if (name == "file")
+            return new File();
+        else
+            return nullptr;
+    }
 }
 
