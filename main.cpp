@@ -49,7 +49,7 @@ void test2()
     }
 }
 
-int main(int /*argc*/, char ** /*argv*/)
+int file_test1()
 {
     logfind::Application app;
     logfind::Parse parse;
@@ -66,5 +66,29 @@ int main(int /*argc*/, char ** /*argv*/)
         return 1;
     }
     return 0;
+}
+
+int file_test2()
+{
+    logfind::Application app;
+    logfind::Parse parse;
+    if (parse.parse("test2.lf") == false)
+    {
+        printf ("Failed to open/parse test2.lf\n");
+        return 1;
+    }
+
+    logfind::AhoFileContextPtr ptr = app.search();
+    if (ptr->find("../fsh/cme.clean") == false)
+    {
+        printf ("Failed to open file\n");
+        return 1;
+    }
+    return 0;
+}
+
+int main(int /*argc*/, char ** /*argv*/)
+{
+    return file_test2();
 }
 

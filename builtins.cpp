@@ -8,7 +8,7 @@
 
 namespace logfind
 {
-    void After::parse(const std::string&)
+    void After::parse(const std::vector<std::string>& args)
     {
     }
 
@@ -29,7 +29,7 @@ namespace logfind
 
     /*********************************************************************/
 
-    void Before::parse(const std::string&)
+    void Before::parse(const std::vector<std::string>& args)
     {
     }
 
@@ -52,7 +52,7 @@ namespace logfind
 
     /*********************************************************************/
 
-    void Print::parse(const std::string&)
+    void Print::parse(const std::vector<std::string>& args)
     {
     }
 
@@ -68,7 +68,7 @@ namespace logfind
         lineSearch_ = MakeAhoLineContext();
     }
 
-    void LineSearch::parse(const std::string&)
+    void LineSearch::parse(const std::vector<std::string>& args)
     {
     }
 
@@ -94,7 +94,7 @@ namespace logfind
 
     /*********************************************************************/
 
-    void Exit::parse(const std::string&)
+    void Exit::parse(const std::vector<std::string>& args)
     {
     }
 
@@ -105,7 +105,7 @@ namespace logfind
 
     /*********************************************************************/
 
-    void NamedPatternActions::parse(const std::string&)
+    void NamedPatternActions::parse(const std::vector<std::string>& args)
     {
     }
 
@@ -124,7 +124,7 @@ namespace logfind
     :append_(false)
     {}
 
-    void File::parse(const std::string&)
+    void File::parse(const std::vector<std::string>& args)
     {
     }
 

@@ -10,6 +10,8 @@
 #include "pattern_actions.h"
 #include "parse.h"
 
+//#define DEBUG_LOG
+
 namespace
 {
     void ptoken(logfind::Token& t)
@@ -57,8 +59,9 @@ namespace logfind
             return false;
         tokenize(fp);
         fclose(fp);
-
+#ifdef DEBUG_LOG
         printf ("tokenize complete\n");
+#endif
         AhoFileContextPtr ptr = theApp->search();
         try
         {
@@ -91,7 +94,9 @@ namespace logfind
                     t.str = "\n";
                     tokens_.push_back(t);
                     ++lineno;
+#ifdef DEBUG_LOG
                     ptoken(t);
+#endif
                     c = fgetc(fp);
                     if (c == EOF)
                         return;
@@ -129,7 +134,9 @@ namespace logfind
                     t.tok = TOKEN_SEARCH_PATTERN;
                     t.lineno = lineno;
                     tokens_.push_back(t);
+#ifdef DEBUG_LOG
                     ptoken(t);
+#endif
                     c = fgetc(fp);
                     if (c == EOF)
                         return;
@@ -142,7 +149,9 @@ namespace logfind
                     t.str = "{";
                     t.lineno = lineno;
                     tokens_.push_back(t);
+#ifdef DEBUG_LOG
                     ptoken(t);
+#endif
                     c = fgetc(fp);
                     if (c == EOF)
                         return;
@@ -155,7 +164,9 @@ namespace logfind
                     t.str = "}";
                     t.lineno = lineno;
                     tokens_.push_back(t);
+#ifdef DEBUG_LOG
                     ptoken(t);
+#endif
                     c = fgetc(fp);
                     if (c == EOF)
                         return;
@@ -179,7 +190,9 @@ namespace logfind
                     t.tok = TOKEN_QUOTED_STRING;
                     t.lineno = lineno;
                     tokens_.push_back(t);
+#ifdef DEBUG_LOG
                     ptoken(t);
+#endif
                     c = fgetc(fp);
                     if (c == EOF)
                         return;
@@ -202,7 +215,9 @@ namespace logfind
                     t.tok = TOKEN_WORD;
                     t.lineno = lineno;
                     tokens_.push_back(t);
+#ifdef DEBUG_LOG
                     ptoken(t);
+#endif
                 }
             }
         }
@@ -214,7 +229,9 @@ namespace logfind
         while (tokIdx_ < tokens_.size())
         {
             Token& token = tokens_[tokIdx_];
-            //ptoken(token);
+#ifdef DEBUG_LOG
+            ptoken(token);
+#endif
             switch(token.tok)
             {
             case TOKEN_SEARCH_PATTERN:
@@ -238,7 +255,9 @@ namespace logfind
 
     void Parse::pattern_action(PatternActionsPtr pa)
     {
+#ifdef DEBUG_LOG
         printf ("parse_action\n");
+#endif
         assert(tokens_[tokIdx_].tok == TOKEN_SEARCH_PATTERN);
         ++tokIdx_;
         if (tokens_[tokIdx_].tok != TOKEN_OPEN_BRACE)
@@ -255,11 +274,15 @@ namespace logfind
             switch(token.tok)
             {
             case TOKEN_CLOSE_BRACE:
+#ifdef DEBUG_LOG
                 ptoken(token);
+#endif
                 return;
             case TOKEN_QUOTED_STRING:
                 {
+#ifdef DEBUG_LOG
                     ptoken(token);
+#endif
                     std::stringstream strm;
                     strm << "Error: " << token.lineno << ", unexpected " << token.str;
                     throw std::runtime_error(strm.str());
@@ -267,7 +290,9 @@ namespace logfind
                 return;
             case TOKEN_OPEN_BRACE:
                 {
+#ifdef DEBUG_LOG
                     ptoken(token);
+#endif
                     std::stringstream strm;
                     strm << "Error: " << token.lineno << ", unexpected '{'";
                     throw std::runtime_error(strm.str());
@@ -275,7 +300,9 @@ namespace logfind
                 return;
             case TOKEN_SEARCH_PATTERN:
                 {
+#ifdef DEBUG_LOG
                     ptoken(token);
+#endif
                     LineSearch *searchCmd = new LineSearch();
                     pa->add_command(searchCmd);
                     PatternActionsPtr pa = searchCmd->add_match_text(token.str.c_str(), token.str.size());
@@ -294,19 +321,16 @@ namespace logfind
                         strm << "Error: " << token.lineno << ", unknown command " << token.str;
                         throw std::runtime_error(strm.str());
                     }
-                    std::stringstream args;
+                    std::vector<std::string> args;
                     while (tokIdx_ < tokens_.size() && tokens_[tokIdx_].tok != TOKEN_NL)
                     {
-                        args << " ";
-                        if (tokens_[tokIdx_].tok == TOKEN_QUOTED_STRING)
-                            args << '"';
-                        args << tokens_[tokIdx_].str;
-                        if (tokens_[tokIdx_].tok == TOKEN_QUOTED_STRING)
-                            args << '"';
+                        args.push_back(tokens_[tokIdx_].str);
+#ifdef DEBUG_LOG
                         ptoken(tokens_[tokIdx_]);
+#endif
                         ++tokIdx_;
                     }
-                    bi->parse(args.str());
+                    bi->parse(args);
                     pa->add_command(bi);
                 }
                 break;
@@ -315,7 +339,9 @@ namespace logfind
                 break;
             default:
                 printf ("skipping: ");
+#ifdef DEBUG_LOG
                 ptoken(tokens_[tokIdx_]);
+#endif
                 ++tokIdx_;
                 break;
             }

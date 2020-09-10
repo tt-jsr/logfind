@@ -4,29 +4,54 @@ for aho-corasick algorithm
 
 Config sample
 
+/!begin!/ {
+    # This pattern will get invoked at the start of the program
+}
+
+/!end!/ {
+    # This pattern will get invoked at the end of the program
+}
+
+/!user-defined!/ {
+    
+}
+
 /pattern/ {
     # If present, print n lines before the match
-    before --num=4
+    after n
+
+    before n
 
     # If present, print n lines after the match
-    after --num=4
+    after --fmt "     " 4
 
-    print "found"
-
-    # Search for a sub pattern/
-    /pattern/{commands...}
-
-    # If present, skips to the location in the logfile where the match is found
-    # No other matching is peformed until the pattern is found
-    !skipto/pattern
+    # print a maximum number of times. if --exit, exit
+    # the program
+    max-count --exit n
 
     # Print format, if it does not exist, print the line
     # ${lineno}  Line number
     # ${offset}  File offset
-    # ${match}   Print just the match pattern (which will be the input pattern)
+    # ${match:n}  Print match pattern + addional chars
+    # ${line}     Print the whole line
     # ${line:m,}  Print the line, from m to eol
     # ${line:,n}  Print the line, from bol to n
     # ${line:m,n} Print the line columns m through n
+    # ${time_t}   If the match line contains a timestamp, 
+                  print it in unix time format (time_t)
+    print "fmt"
+    
+    regex args...
+
+    # Search for a sub pattern/
+    # This will only search the matched line
+    /pattern/ {
+        commands
+            .
+            .
+            .
+    }
+
 
     # Send output to this file
     file "junk"

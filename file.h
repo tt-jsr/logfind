@@ -29,24 +29,5 @@ namespace logfind
         LRUCache cache_;
         bool eof_;
     };
-/*
-    class WriteFile
-    {
-    public:
-        WriteFile();
-        ~WriteFile();
-        // null for stdout
-        bool open(const char *, bool truncate);
-        bool write(const std::string&);
-        bool write(const char *, uint32_t len);
-        bool writenl();
-    private:
-        int fd_;
-        char *buffer_;
-        uint32_t bufsize_;
-        char *pos_;
-        char *endbuf_;
-    };
-    */
 }
 #endif
