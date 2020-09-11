@@ -127,13 +127,11 @@ void aho_clear_trie(struct ahocorasick * aho)
     aho_destroy_trie(&aho->trie);
 }
 
-unsigned int aho_findtext(struct ahocorasick * aho, char (*getchar)(void *), void *arg)
+unsigned int aho_findtext(struct ahocorasick * aho, unsigned long long int lineno, unsigned long long int lineoff, char (*getchar)(void *), void *arg)
 {
     unsigned long long i = 0;
     int match_count = 0;
     struct aho_trie_node* travasal_node = NULL;
-    unsigned long long int lineno = 0;
-    unsigned long long int lineoff = 0;
 
     travasal_node = &(aho->trie.root);
 

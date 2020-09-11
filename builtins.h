@@ -9,7 +9,7 @@ namespace logfind
     struct Builtin
     {
         virtual ~Builtin() {}
-        virtual void parse(const std::vector<std::string>&) = 0;
+        virtual bool parse(const std::vector<std::string>&) = 0;
         virtual void on_command(int fd, uint32_t lineno, linebuf& matching_line) = 0;
 
         AhoContext *pCtx_;
@@ -19,29 +19,36 @@ namespace logfind
 
     struct After : public Builtin
     {
-        void parse(const std::vector<std::string>&) override;
+        bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
         uint8_t lines_;
     };
 
     struct Before : public Builtin
     {
-        void parse(const std::vector<std::string>&) override;
+        bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
         uint8_t lines_;
     };
 
     struct Print : public Builtin
     {
-        void parse(const std::vector<std::string>&) override;
+        Print();
+        bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+
+        bool parse_line_fmt(const char *&p);
+        void substitute(const char *&p, int fd, uint32_t lineno, linebuf& matchingline);
         std::string format_;
+        int line_start_;
+        int line_end_;
+        char match_delim_;
     };
 
     struct LineSearch : public Builtin
     {
         LineSearch();
-        void parse(const std::vector<std::string>&) override;
+        bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
         PatternActionsPtr add_match_text(const char *, uint32_t len);
         PatternActionsPtr add_match_text(const char *);
@@ -52,13 +59,13 @@ namespace logfind
 
     struct Exit : public Builtin
     {
-        void parse(const std::vector<std::string>&) override;
+        bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
     };
 
     struct NamedPatternActions : public Builtin
     {
-        void parse(const std::vector<std::string>&) override;
+        bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
         std::string name_;
     };
@@ -66,7 +73,7 @@ namespace logfind
     struct File : public Builtin
     {
         File();
-        void parse(const std::vector<std::string>&) override;
+        bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
         std::string name_;
         bool append_;

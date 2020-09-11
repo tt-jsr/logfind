@@ -60,7 +60,7 @@ namespace logfind
     {
     public:
         AhoLineContext();
-        bool find(const char *p, uint32_t len);
+        bool find(const char *p, uint32_t len, uint32_t lineno, uint64_t lineoff);
     protected:
         std::string line;
         size_t pos;

@@ -1,9 +1,6 @@
 /bb77a423-f475-434b-a336-3bd09a32c464/ {
-    /EXEC_TYPE_TRADE/ {
-        print
-    }
     /EXEC_TYPE_NEW/ {
-        print
+        print "Found: ${lineno}:${offset} ${line}"
     }
 }
 

@@ -1,3 +1,6 @@
+#include <sstream>
+#include <unistd.h>
+#include <limits>
 #include "lru_cache.h"
 #include "aho_context.h"
 #include "file.h"
@@ -8,7 +11,7 @@
 
 namespace logfind
 {
-    void After::parse(const std::vector<std::string>& args)
+    bool After::parse(const std::vector<std::string>& args)
     {
     }
 
@@ -29,7 +32,7 @@ namespace logfind
 
     /*********************************************************************/
 
-    void Before::parse(const std::vector<std::string>& args)
+    bool Before::parse(const std::vector<std::string>& args)
     {
     }
 
@@ -52,13 +55,180 @@ namespace logfind
 
     /*********************************************************************/
 
-    void Print::parse(const std::vector<std::string>& args)
+    // parse the ${line:n,m} format
+    bool Print::parse_line_fmt(const char *&p)
     {
+        switch (*p)
+        {
+        case '}':
+            ++p;
+            break;
+        case ':':
+            ++p;
+            char sbuf[32], ebuf[32];
+            char *dest = sbuf;
+            while(*p && *p != '}')
+            {
+               switch(*p)
+               {
+                case ',':
+                    *dest = '\0';
+                    dest = ebuf;
+                    break;
+                default:
+                    if ((*p >= '0' && *p <= '9') || *p == '-')
+                    {
+                        *dest = *p;
+                        ++dest;
+                    }
+               }
+               ++p;
+            }
+            *dest = '\0';
+            if (sbuf[0] == '\0')
+                line_start_ = 0;
+            else
+                line_start_ = strtol(sbuf, nullptr, 10);
+            if (ebuf[0] == '\0')
+                line_end_ = std::numeric_limits<int>::max();
+            else
+                line_end_ = strtol(ebuf, nullptr, 10);
+        }
+        return true;
+    }
+
+    Print::Print()
+    :line_start_(0)
+    ,line_end_(std::numeric_limits<int>::max())
+    ,match_delim_(0)
+    {}
+
+    bool Print::parse(const std::vector<std::string>& args)
+    {
+        if (args.size() > 1)
+        {
+            const char *p = args[1].c_str();
+            std::stringstream strm;
+            while(*p)
+            {
+                if (strncmp(p, "${lineno}", 9) == 0)
+                {
+                    strm << "${1}";
+                    p += 9;
+                }
+                else if (strncmp(p, "${offset}", 9) == 0)
+                {
+                    strm << "${2}";
+                    p += 9;
+                }
+                else if (strncmp(p, "${line", 6) == 0)
+                {
+                    strm << "${3}";
+                    p += 6;
+                    if (parse_line_fmt(p) == false)
+                        return false;
+                }
+                else if (strncmp(p, "${match/", 8) == 0)
+                {
+                    strm << "${4}";
+                    p += 8;
+                    match_delim_ = *p;
+                    ++p;
+                }
+                else
+                {
+                    strm << *p;
+                    ++p;
+                }
+            }
+            format_ = strm.str();
+        }
+        return true;
+    }
+
+    void Print::substitute(const char *&p, int fd, uint32_t lineno, linebuf& matchingline)
+    {
+        if (strncmp(p, "${1}", 4) == 0)  //${lineno}
+        {
+            char buf[32];
+            sprintf (buf, "%d", lineno);
+            write(fd, buf, strlen(buf));
+            p += 4;
+            return;
+        }
+        if (strncmp(p, "${2}", 4) == 0)     // ${offset}
+        {
+            char buf[32];
+            sprintf (buf, "%d", aho_match_->lineoff);
+            write(fd, buf, strlen(buf));
+            p += 4;
+            return;
+        }
+        if (strncmp(p, "${3}", 4) == 0)     // ${line}
+        {
+            int start(line_start_), end(line_end_);
+            if (start > (int)matchingline.len)
+            {
+                start = (int)matchingline.len;
+            }
+            if (start < 0)
+            {
+                start = (int)matchingline.len + start;
+                if (start < 0)
+                    start = 0;
+            }
+            if (end > (int)matchingline.len)
+                end = (int)matchingline.len;
+            if (end < 0)
+            {
+                end = (int)matchingline.len + end;
+                if (end < 0)
+                    end = 0;
+            }
+            if (start > end)
+                start = end;
+
+            int len = end-start;
+            write(fd, matchingline.buf+start, len);
+            p += 4;
+            return;
+        }
+
+        if (strncmp(p, "${4}", 4) == 0)     // ${match}
+        {
+            int lineoffset = aho_match_->pos - aho_match_->lineoff;
+            char *src = matchingline.buf+lineoffset;
+            write(fd, src, aho_match_->len);
+            src += aho_match_->len;
+            while (*src != match_delim_ && src < matchingline.buf+matchingline.len)
+            {
+                write(fd, src, 1);
+                ++src;
+            }
+            p += 4;
+        }
     }
 
     void Print::on_command(int fd, uint32_t lineno, linebuf& matchingline)
     {
-        dprintf(fd, "%s\n", matchingline.buf);
+        if (format_.empty())
+        {
+            dprintf(fd, "%s\n", matchingline.buf);
+            return;
+        }
+        const char * p = format_.c_str();
+        while (*p)
+        {
+            if (*p == '$' && *(p+1) == '{')
+            {
+                substitute(p, fd, lineno, matchingline);
+            }
+            else
+            {
+                write(fd, p, 1);
+                ++p;
+            }
+        }
     }
 
     /*********************************************************************/
@@ -68,13 +238,13 @@ namespace logfind
         lineSearch_ = MakeAhoLineContext();
     }
 
-    void LineSearch::parse(const std::vector<std::string>& args)
+    bool LineSearch::parse(const std::vector<std::string>& args)
     {
     }
 
     void LineSearch::on_command(int fd, uint32_t lineno, linebuf& matchingline)
     {
-        lineSearch_->find(matchingline.buf, matchingline.len);
+        lineSearch_->find(matchingline.buf, matchingline.len, aho_match_->lineno, aho_match_->lineoff);
     }
 
     PatternActionsPtr LineSearch::add_match_text(const char *p, uint32_t len)
@@ -94,7 +264,7 @@ namespace logfind
 
     /*********************************************************************/
 
-    void Exit::parse(const std::vector<std::string>& args)
+    bool Exit::parse(const std::vector<std::string>& args)
     {
     }
 
@@ -105,7 +275,7 @@ namespace logfind
 
     /*********************************************************************/
 
-    void NamedPatternActions::parse(const std::vector<std::string>& args)
+    bool NamedPatternActions::parse(const std::vector<std::string>& args)
     {
     }
 
@@ -124,7 +294,7 @@ namespace logfind
     :append_(false)
     {}
 
-    void File::parse(const std::vector<std::string>& args)
+    bool File::parse(const std::vector<std::string>& args)
     {
     }
 
@@ -137,16 +307,16 @@ namespace logfind
 
     Builtin *BuiltinFactory(const std::string& name)
     {
-        if (name == "after")
-            return new After();
-        else if (name == "before")
-            return new Before();
-        else if (name == "print")
+        if (name == "print")
             return new Print();
         else if (name == "exit")
             return new Exit();
         else if (name == "file")
             return new File();
+        //else if (name == "after")
+            //return new After();
+        //else if (name == "before")
+            //return new Before();
         else
             return nullptr;
     }

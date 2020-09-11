@@ -62,7 +62,7 @@ namespace logfind
         bool r = file.open(fname);
         if (r == false)
             return false;
-        aho_findtext(&aho_, aho_getchar, this);
+        aho_findtext(&aho_, 0, 0, aho_getchar, this);
         return true;
     }
 
@@ -84,11 +84,11 @@ namespace logfind
     {
     }
 
-    bool AhoLineContext::find(const char *p, uint32_t len)
+    bool AhoLineContext::find(const char *p, uint32_t len, uint32_t lineno, uint64_t lineoff)
     {
         pos = 0;
         line.assign(p, len);
-        aho_findtext(&aho_, aho_getchar, this);
+        aho_findtext(&aho_, lineno, lineoff, aho_getchar, this);
     }
 
     char AhoLineContext::get()

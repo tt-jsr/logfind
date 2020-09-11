@@ -245,7 +245,7 @@ namespace logfind
                 break;
             default:
                 std::stringstream strm;
-                strm << "Error: " << token.lineno << ", expected '/'";
+                strm << "Error at line: " << token.lineno << ", expected '/'";
                 throw std::runtime_error(strm.str());
             }
             ++tokIdx_;
@@ -264,7 +264,7 @@ namespace logfind
         {
             int lineno = tokens_[tokIdx_-1].lineno;
             std::stringstream strm;
-            strm << "Error: " << tokens_[tokIdx_].lineno << ", expected '{'";
+            strm << "Error at line: " << tokens_[tokIdx_].lineno << ", expected '{'";
             throw std::runtime_error(strm.str());
         }
         ++tokIdx_;
@@ -284,7 +284,7 @@ namespace logfind
                     ptoken(token);
 #endif
                     std::stringstream strm;
-                    strm << "Error: " << token.lineno << ", unexpected " << token.str;
+                    strm << "Error at line: " << token.lineno << ", unexpected " << token.str;
                     throw std::runtime_error(strm.str());
                 }
                 return;
@@ -294,7 +294,7 @@ namespace logfind
                     ptoken(token);
 #endif
                     std::stringstream strm;
-                    strm << "Error: " << token.lineno << ", unexpected '{'";
+                    strm << "Error at line: " << token.lineno << ", unexpected '{'";
                     throw std::runtime_error(strm.str());
                 }
                 return;
@@ -318,7 +318,7 @@ namespace logfind
                     if (bi == nullptr)
                     {
                         std::stringstream strm;
-                        strm << "Error: " << token.lineno << ", unknown command " << token.str;
+                        strm << "Error at line: " << token.lineno << ", unknown command " << token.str;
                         throw std::runtime_error(strm.str());
                     }
                     std::vector<std::string> args;
@@ -330,7 +330,12 @@ namespace logfind
 #endif
                         ++tokIdx_;
                     }
-                    bi->parse(args);
+                    if (bi->parse(args) == false)
+                    {
+                        std::stringstream strm;
+                        strm << "Error at line: " << token.lineno << ", failed to parse command " << token.str;
+                        throw std::runtime_error(strm.str());
+                    }
                     pa->add_command(bi);
                 }
                 break;
