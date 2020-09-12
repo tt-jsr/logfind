@@ -7,7 +7,7 @@
 #include "file.h"
 #include "linebuf.h"
 #include "application.h"
-#include "builtins.h"
+#include "actions.h"
 #include "pattern_actions.h"
 
 namespace logfind
@@ -484,7 +484,7 @@ namespace logfind
 
     /*********************************************************************/
 
-    Builtin *BuiltinFactory(const std::string& name)
+    Action *ActionFactory(const std::string& name)
     {
         if (name == "print")
             return new Print();

@@ -17,7 +17,8 @@ SYNTAX
     in the order listed.
 
 ACTIONS
-    The following actions are supported for each pattern match.
+    The following actions are supported for each pattern match. Additional
+    actions can be easily defined and implemented for customizing.
 
     /pattern/ {
         ...

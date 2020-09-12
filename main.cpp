@@ -3,7 +3,7 @@
 #include "application.h"
 #include "aho_context.h"
 #include "pattern_actions.h"
-#include "builtins.h"
+#include "actions.h"
 #include "parse.h"
 
 
@@ -13,13 +13,13 @@ void test()
 
     auto fileSearch = app.search();
     auto pa = fileSearch->add_match_text("S T A R T");
-    pa->add_command(new logfind::Print());
+    pa->add_action(new logfind::Print());
     pa = fileSearch->add_match_text("Orderserver is ready");
-    pa->add_command(new logfind::Print());
+    pa->add_action(new logfind::Print());
     pa = fileSearch->add_match_text("loadbalancer invoked");
-    pa->add_command(new logfind::Print());
+    pa->add_action(new logfind::Print());
     pa = fileSearch->add_match_text("build");
-    pa->add_command(new logfind::Print());
+    pa->add_action(new logfind::Print());
     fileSearch->build_trie();
 
     if (fileSearch->find("../fsh/cme-noisy.log") == false)
@@ -36,11 +36,11 @@ void test2()
     fileSearch->build_trie();
 
     logfind::LineSearch *searchCmd = new logfind::LineSearch();
-    filePa->add_command(searchCmd);
+    filePa->add_action(searchCmd);
     auto pa = searchCmd->add_match_text("EXEC_TYPE_TRADE");
-    pa->add_command(new logfind::Print());
+    pa->add_action(new logfind::Print());
     pa = searchCmd->add_match_text("EXEC_TYPE_NEW");
-    pa->add_command(new logfind::Print());
+    pa->add_action(new logfind::Print());
     searchCmd->build_trie();
 
     if (fileSearch->find("../fsh/cme.clean") == false)

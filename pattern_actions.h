@@ -12,7 +12,7 @@ namespace logfind
 {
     class AhoLineContext;
     class PatternActions;
-    class Builtin;
+    class Action;
 
     using PatternActionsPtr = std::shared_ptr<PatternActions>;
     using AhoLineContextPtr = std::shared_ptr<AhoLineContext>;
@@ -24,13 +24,13 @@ namespace logfind
         ~PatternActions();
         void on_match(AhoContext *ctx, struct aho_match_t* m);
         void on_exit(AhoContext *ctx);
-        void add_command(Builtin *);
+        void add_action(Action *);
         void disable(bool);
         bool is_disabled();
     private:
         friend class File;
         int fd_;
-        std::vector<Builtin *> commands_;
+        std::vector<Action *> actions_;
         bool disabled_;
     };
 

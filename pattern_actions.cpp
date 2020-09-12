@@ -5,7 +5,7 @@
 #include "aho_context.h"
 #include "application.h"
 #include "pattern_actions.h"
-#include "builtins.h"
+#include "actions.h"
 
 namespace logfind
 {
@@ -22,7 +22,7 @@ namespace logfind
 
     PatternActions::~PatternActions()
     {
-        for (auto p : commands_)
+        for (auto p : actions_)
         {
             delete p;
         }
@@ -38,9 +38,9 @@ namespace logfind
         return disabled_; 
     }
 
-    void PatternActions::add_command(Builtin *bi)
+    void PatternActions::add_action(Action *action)
     {
-        commands_.push_back(bi);
+        actions_.push_back(action);
     }
 
     void PatternActions::on_match(AhoContext *ctx, struct aho_match_t* m)
@@ -50,12 +50,12 @@ namespace logfind
         linebuf lb;
         ctx->readLine(m->lineno, lb);
         int fdSave = fd_;    // save
-        for (Builtin *cmd : commands_)
+        for (Action *action : actions_)
         {
-            cmd->aho_match_ = m;
-            cmd->pCtx_ = ctx;
-            cmd->pattern_actions_ = this;
-            cmd->on_command(fd_, m->lineno, lb);
+            action->aho_match_ = m;
+            action->pCtx_ = ctx;
+            action->pattern_actions_ = this;
+            action->on_command(fd_, m->lineno, lb);
             if (disabled_)
                 return;     // we test here too since it might have just became disabled
         }
@@ -65,12 +65,12 @@ namespace logfind
 
     void PatternActions::on_exit(AhoContext *ctx)
     {
-        for (Builtin *cmd : commands_)
+        for (Action *action : actions_)
         {
-            cmd->aho_match_ = nullptr;
-            cmd->pCtx_ = ctx;
-            cmd->pattern_actions_ = this;
-            cmd->on_exit(fd_);
+            action->aho_match_ = nullptr;
+            action->pCtx_ = ctx;
+            action->pattern_actions_ = this;
+            action->on_exit(fd_);
         }
     }
 }

@@ -6,7 +6,7 @@
 #include "file.h"
 #include "linebuf.h"
 #include "application.h"
-#include "builtins.h"
+#include "actions.h"
 #include "pattern_actions.h"
 #include "parse.h"
 
@@ -304,7 +304,7 @@ namespace logfind
                     ptoken(token);
 #endif
                     LineSearch *searchCmd = new LineSearch();
-                    pa->add_command(searchCmd);
+                    pa->add_action(searchCmd);
                     PatternActionsPtr pa = searchCmd->add_match_text(token.str.c_str(), token.str.size());
                     pattern_action(pa);
                     assert(tokens_[tokIdx_].tok == TOKEN_CLOSE_BRACE);
@@ -314,8 +314,8 @@ namespace logfind
                 break;
             case TOKEN_WORD:
                 {
-                    Builtin *bi = BuiltinFactory(token.str);
-                    if (bi == nullptr)
+                    Action *action = ActionFactory(token.str);
+                    if (action == nullptr)
                     {
                         std::stringstream strm;
                         strm << "Error at line: " << token.lineno << ", unknown command " << token.str;
@@ -331,13 +331,13 @@ namespace logfind
                         ++tokIdx_;
                     }
                     args.erase(args.begin());  // remove the command name
-                    if (bi->parse(args) == false)
+                    if (action->parse(args) == false)
                     {
                         std::stringstream strm;
                         strm << "Error at line: " << token.lineno << ", failed to parse command " << token.str;
                         throw std::runtime_error(strm.str());
                     }
-                    pa->add_command(bi);
+                    pa->add_action(action);
                 }
                 break;
             case TOKEN_NL:

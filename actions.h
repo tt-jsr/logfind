@@ -1,14 +1,14 @@
-#ifndef BUILTINS_H_
-#define BUILTINS_H_
+#ifndef ACTIONS_H_
+#define ACTIONS_H_
 
 namespace logfind
 {
     class AhoContext;
     struct linebuf;
 
-    struct Builtin
+    struct Action
     {
-        virtual ~Builtin() {}
+        virtual ~Action() {}
         virtual bool parse(const std::vector<std::string>&) = 0;
         virtual void on_command(int fd, uint32_t lineno, linebuf& matching_line) = 0;
         virtual void on_exit(int fd) {}
@@ -18,21 +18,21 @@ namespace logfind
         struct aho_match_t *aho_match_;
     };
 
-    struct After : public Builtin
+    struct After : public Action
     {
         bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
         uint8_t lines_;
     };
 
-    struct Before : public Builtin
+    struct Before : public Action
     {
         bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
         uint8_t lines_;
     };
 
-    struct MaxCount : public Builtin
+    struct MaxCount : public Action
     {
         MaxCount();
         bool parse(const std::vector<std::string>&) override;
@@ -42,7 +42,7 @@ namespace logfind
         bool exit_;
     };
 
-    struct Print : public Builtin
+    struct Print : public Action
     {
         Print();
         bool parse(const std::vector<std::string>&) override;
@@ -57,7 +57,7 @@ namespace logfind
         int match_additional_;
     };
 
-    struct LineSearch : public Builtin
+    struct LineSearch : public Action
     {
         LineSearch();
         bool parse(const std::vector<std::string>&) override;
@@ -70,20 +70,20 @@ namespace logfind
         AhoLineContextPtr lineSearch_;
     };
 
-    struct Exit : public Builtin
+    struct Exit : public Action
     {
         bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
     };
 
-    struct NamedPatternActions : public Builtin
+    struct NamedPatternActions : public Action
     {
         bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
         std::string name_;
     };
 
-    struct File : public Builtin
+    struct File : public Action
     {
         File();
         bool parse(const std::vector<std::string>&) override;
@@ -94,7 +94,7 @@ namespace logfind
         bool stderr_;
     };
 
-    struct Count : public Builtin
+    struct Count : public Action
     {
         Count();
         bool parse(const std::vector<std::string>&) override;
@@ -105,7 +105,7 @@ namespace logfind
         bool percent_d_;
     };
 
-    Builtin *BuiltinFactory(const std::string&);
+    Action *ActionFactory(const std::string&);
 }
 
 #endif
