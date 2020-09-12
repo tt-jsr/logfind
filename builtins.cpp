@@ -159,7 +159,7 @@ namespace logfind
         if (strncmp(p, "${2}", 4) == 0)     // ${offset}
         {
             char buf[32];
-            sprintf (buf, "%d", aho_match_->lineoff);
+            sprintf (buf, "%d", aho_match_->line_match_pos);
             write(fd, buf, strlen(buf));
             p += 4;
             return;
@@ -196,8 +196,7 @@ namespace logfind
 
         if (strncmp(p, "${4}", 4) == 0)     // ${match}
         {
-            int lineoffset = aho_match_->pos - aho_match_->lineoff;
-            char *src = matchingline.buf+lineoffset;
+            char *src = matchingline.buf+aho_match_->line_match_pos;
             write(fd, src, aho_match_->len);
             src += aho_match_->len;
             while (*src != match_delim_ && src < matchingline.buf+matchingline.len)
@@ -222,6 +221,12 @@ namespace logfind
             if (*p == '$' && *(p+1) == '{')
             {
                 substitute(p, fd, lineno, matchingline);
+                ++p;
+            }
+            else if (*p == '\\' && *(p+1) == 'n')
+            {
+                write(fd, "\n", 1);
+                p += 2;
             }
             else
             {
@@ -244,7 +249,7 @@ namespace logfind
 
     void LineSearch::on_command(int fd, uint32_t lineno, linebuf& matchingline)
     {
-        lineSearch_->find(matchingline.buf, matchingline.len, aho_match_->lineno, aho_match_->lineoff);
+        lineSearch_->find(matchingline.buf, matchingline.len, aho_match_->lineno, aho_match_->line_position_in_file);
     }
 
     PatternActionsPtr LineSearch::add_match_text(const char *p, uint32_t len)

@@ -22,9 +22,6 @@ Config sample
 
     before n
 
-    # If present, print n lines after the match
-    after --fmt "     " 4
-
     # print a maximum number of times. if --exit, exit
     # the program
     max-count --exit n

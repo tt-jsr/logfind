@@ -7,9 +7,11 @@
 struct aho_match_t
 {
     int id;                             // id of pattern returned from aho_add_match_text()
-    unsigned long long int pos;         // Match at offset into line or file
-    unsigned long long int lineno;      // Line number match was found
-    unsigned long long int lineoff;     // File offset of line in file
+    unsigned long long int line_match_pos;     // Match position from begining of line
+    unsigned long long int file_match_pos;     // Match position from begining of file
+    unsigned long long int lineno;             // File line number
+    unsigned long long int line_position_in_file;      // Fie position of begining of line
+
 
     int len;                            // Length of match
 };

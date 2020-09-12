@@ -1,6 +1,14 @@
 /bb77a423-f475-434b-a336-3bd09a32c464/ {
     /EXEC_TYPE_NEW/ {
-        print "Found: ${lineno}:${offset} ${line}"
+        print "NOS: ${lineno}: ${line:,120}\n"
     }
+    /EXEC_TYPE_TRADE/ {
+        print "match: ${match/ }\n"
+        print "TRADE: ${lineno}: ${line:,120}\n"
+    }
+    /OrderCancelReject/ {
+        print "OCR: ${lineno}: ${line:,120}\n"
+    }
+
 }
 

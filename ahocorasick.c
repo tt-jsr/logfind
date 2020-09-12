@@ -127,13 +127,14 @@ void aho_clear_trie(struct ahocorasick * aho)
     aho_destroy_trie(&aho->trie);
 }
 
-unsigned int aho_findtext(struct ahocorasick * aho, unsigned long long int lineno, unsigned long long int lineoff, char (*getchar)(void *), void *arg)
+unsigned int aho_findtext(struct ahocorasick * aho, unsigned long long int lineno, unsigned long long int filepos, char (*getchar)(void *), void *arg)
 {
     unsigned long long i = 0;
     int match_count = 0;
     struct aho_trie_node* travasal_node = NULL;
 
     travasal_node = &(aho->trie.root);
+    unsigned long long int line_position_in_file = filepos;
 
     for (i = 0; ; i++)
     {
@@ -146,7 +147,7 @@ unsigned int aho_findtext(struct ahocorasick * aho, unsigned long long int linen
         if (c == '\n')
         {
             ++lineno;
-            lineoff = i+1;
+            line_position_in_file = i+1;
         }
         result = aho_find_trie_node(&travasal_node, c);
         if (result == NULL)
@@ -157,15 +158,16 @@ unsigned int aho_findtext(struct ahocorasick * aho, unsigned long long int linen
         match.id = result->id;
         match.len = result->len;
 
-        match.pos = i - result->len + 1;
+        match.file_match_pos = i - result->len + 1 + filepos;
         if (result->len == 1)
         {
-            match.pos = i;
+            match.file_match_pos = i + filepos;
         }
 
         match_count++;
         match.lineno = lineno;
-        match.lineoff = lineoff;
+        match.line_position_in_file = line_position_in_file;
+        match.line_match_pos = match.file_match_pos - match.line_position_in_file;
         if (aho->callback_match)
         {
             aho->callback_match(aho->callback_arg, &match);
