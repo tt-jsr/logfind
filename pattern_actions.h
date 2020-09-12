@@ -23,6 +23,7 @@ namespace logfind
         PatternActions();
         ~PatternActions();
         void on_match(AhoContext *ctx, struct aho_match_t* m);
+        void on_exit(AhoContext *ctx);
         void add_command(Builtin *);
         void disable(bool);
         bool is_disabled();

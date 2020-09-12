@@ -60,5 +60,16 @@ namespace logfind
         }
         theApp->free(lb);
     }
+
+    void PatternActions::on_exit(AhoContext *ctx)
+    {
+        for (Builtin *cmd : commands_)
+        {
+            cmd->aho_match_ = nullptr;
+            cmd->pCtx_ = ctx;
+            cmd->pattern_actions_ = this;
+            cmd->on_exit(fd_);
+        }
+    }
 }
 

@@ -106,9 +106,9 @@ namespace logfind
 
     bool Print::parse(const std::vector<std::string>& args)
     {
-        if (args.size() > 1)
+        if (args.size() > 0)
         {
-            const char *p = args[1].c_str();
+            const char *p = args[0].c_str();
             std::stringstream strm;
             while(*p)
             {
@@ -262,6 +262,11 @@ namespace logfind
         lineSearch_->find(matchingline.buf, matchingline.len, aho_match_->lineno, aho_match_->line_position_in_file);
     }
 
+    void LineSearch::on_exit(int fd)
+    {
+        lineSearch_->on_exit();
+    }
+
     PatternActionsPtr LineSearch::add_match_text(const char *p, uint32_t len)
     {
         return lineSearch_->add_match_text(p, len);
@@ -332,6 +337,57 @@ namespace logfind
 
     /*********************************************************************/
 
+    Count::Count()
+    :count_(0)
+    {
+    }
+
+    bool Count::parse(const std::vector<std::string>& args)
+    {
+        for (auto& s : args)
+        {
+            auto iter = s.begin();
+            while (iter != s.end())
+            {
+                if (*iter == '\\')
+                {
+                    ++iter;
+                    if (*iter == 'n')
+                    {
+                        format_.push_back('\n');
+                    }
+                    else if (*iter == 't')
+                    {
+                        format_.push_back('\t');
+                    }
+                    else
+                    {
+                        format_.push_back(*iter);
+                    }
+                    ++iter;
+                }
+                else
+                {
+                    format_.push_back(*iter);
+                    ++iter;
+                }
+            }
+        }
+        return true;
+    }
+
+    void Count::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    {
+        ++count_;
+    }
+
+    void Count::on_exit(int fd)
+    {
+        dprintf(fd, format_.c_str(), count_);
+    }
+
+    /*********************************************************************/
+
     bool NamedPatternActions::parse(const std::vector<std::string>& args)
     {
     }
@@ -372,6 +428,8 @@ namespace logfind
             return new File();
         else if (name == "max-count")
             return new MaxCount();
+        else if (name == "count")
+            return new Count();
         //else if (name == "after")
             //return new After();
         //else if (name == "before")

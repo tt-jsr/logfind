@@ -17,6 +17,7 @@ namespace logfind
     public:
         Application();
 
+        void on_exit();
         void exit();
         void NamedPatternAction(const char *name, PatternActionsPtr);
         PatternActionsPtr GetNamedPattern(const char *);

@@ -11,6 +11,7 @@ namespace logfind
         virtual ~Builtin() {}
         virtual bool parse(const std::vector<std::string>&) = 0;
         virtual void on_command(int fd, uint32_t lineno, linebuf& matching_line) = 0;
+        virtual void on_exit(int fd) {}
 
         AhoContext *pCtx_;
         PatternActions *pattern_actions_;
@@ -60,6 +61,7 @@ namespace logfind
         LineSearch();
         bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_exit(int fd);
         PatternActionsPtr add_match_text(const char *, uint32_t len);
         PatternActionsPtr add_match_text(const char *);
         void build_trie();
@@ -87,6 +89,16 @@ namespace logfind
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
         std::string name_;
         bool append_;
+    };
+
+    struct Count : public Builtin
+    {
+        Count();
+        bool parse(const std::vector<std::string>&) override;
+        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_exit(int fd);
+        uint32_t count_;
+        std::string format_;
     };
 
     Builtin *BuiltinFactory(const std::string&);

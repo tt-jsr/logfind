@@ -56,6 +56,14 @@ namespace logfind
         it->second->on_match(this, m);
     }
 
+    void AhoContext::on_exit()
+    {
+        for (auto& pr : match_actions)
+        {
+            pr.second->on_exit(this);
+        }
+    }
+
     /**************************************************************/
     bool AhoFileContext::find(const char *fname)
     {

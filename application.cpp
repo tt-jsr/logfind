@@ -21,6 +21,11 @@ namespace logfind
         exit_flag = false;
     }
 
+    void Application::on_exit()
+    {
+        pCtx_->on_exit();
+    }
+
     void Application::exit()
     {
         exit_flag = true;

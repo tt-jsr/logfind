@@ -330,6 +330,7 @@ namespace logfind
 #endif
                         ++tokIdx_;
                     }
+                    args.erase(args.begin());  // remove the command name
                     if (bi->parse(args) == false)
                     {
                         std::stringstream strm;

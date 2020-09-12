@@ -84,6 +84,7 @@ int file_test2()
         printf ("Failed to open file\n");
         return 1;
     }
+    app.on_exit();
     return 0;
 }
 

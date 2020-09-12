@@ -39,6 +39,7 @@ namespace logfind
         virtual char get() = 0;
         virtual bool readLine(uint64_t lineno, linebuf& l) = 0;
         void on_match(struct aho_match_t* m);
+        void on_exit();
     protected:
 
         struct ahocorasick aho_;

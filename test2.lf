@@ -12,6 +12,9 @@
         }
         print "NOS: ${lineno}: ${line:,120}\n"
     }
+    /EXEC_TYPE_REPLACE/ {
+        count "Num of replace: %d\n"
+    }
     /EXEC_TYPE_TRADE/ {
         / account_id=/ {
             print "${match/ }\n"
