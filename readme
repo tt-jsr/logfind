@@ -20,12 +20,6 @@ ACTIONS
     The following actions are supported for each pattern match. Additional
     actions can be easily defined and implemented for customizing.
 
-    /pattern/ {
-        ...
-    }
-        Search for a pattern in the currently matched line. Each sub pattern
-        can own a set of actions to be executed.
-
     print
         Print the current matched line to the current output.
 
@@ -64,14 +58,25 @@ ACTIONS
         send output to multiple files, or have each pattern match sent to separate files
         if desired.
 
-    after n
-        Print n lines after the match
+    after n [--fmt "fmt"]
+        Print n lines after the match. 
+        --fmt: If present, will use the print format. For the purposes of the format, the entire 
+               line is considered a match.
 
-    before n
-        Print n lines after the match
+    before n [--fmt "fmt"]
+        Print n lines before the match.
+        --fmt: If present, will use the print format. For the purposes of the format, the entire 
+               line is considered a match.
 
     exit
         Exit the program
+
+    /pattern/ {
+        ...
+    }
+        Search for a pattern in the currently matched line. Each sub pattern
+        can own a set of actions to be executed.
+
             
 PERFORMANCE
     This program uses the aho-corasick algorithim for finding the pattern matches. With an 

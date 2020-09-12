@@ -1,3 +1,11 @@
+/S T A R T/ {
+    print
+}
+
+/S H U T D O W N/ {
+    print
+}
+
 /bb77a423-f475-434b-a336-3bd09a32c464/ {
 
     /EXEC_TYPE_NEW/ {
