@@ -102,6 +102,7 @@ namespace logfind
     :line_start_(0)
     ,line_end_(std::numeric_limits<int>::max())
     ,match_delim_(0)
+    ,match_additional_(0)
     {}
 
     bool Print::parse(const std::vector<std::string>& args)
@@ -139,6 +140,13 @@ namespace logfind
                         ++p; // get pass the '/'
                         match_delim_ = *p;
                         ++p;    // get pass the delimiter
+                    }
+                    else if (*p == '+')
+                    {
+                        ++p; // get pass the '+'
+                        char *e;
+                        match_additional_ = std::strtol(p, &e, 10);
+                        p = e;
                     }
                     assert(*p == '}');
                     ++p;
@@ -212,6 +220,15 @@ namespace logfind
                 {
                     write(fd, src, 1);
                     ++src;
+                }
+            }
+            if (match_additional_) {
+                int n = match_additional_;
+                while (*src && n && src < matchingline.buf+matchingline.len)
+                {
+                    write(fd, src, 1);
+                    ++src;
+                    --n;
                 }
             }
             p += 4;
@@ -339,6 +356,7 @@ namespace logfind
 
     Count::Count()
     :count_(0)
+    ,percent_d_(false)
     {
     }
 
@@ -366,6 +384,21 @@ namespace logfind
                     }
                     ++iter;
                 }
+                else if (*iter == '%')
+                {
+                    format_.push_back(*iter);
+                    ++iter;
+                    if (*iter == 'd')
+                    {
+                        if (percent_d_)
+                            return false;   // too many %d
+                        percent_d_ = true;
+                    }
+                    else
+                        return false;   // unsupported format
+                    format_.push_back(*iter);
+                    ++iter;
+                }
                 else
                 {
                     format_.push_back(*iter);
@@ -383,7 +416,10 @@ namespace logfind
 
     void Count::on_exit(int fd)
     {
-        dprintf(fd, format_.c_str(), count_);
+        if (percent_d_)
+            dprintf(fd, format_.c_str(), count_);
+        else
+            dprintf(fd, format_.c_str(), count_);
     }
 
     /*********************************************************************/
@@ -405,15 +441,45 @@ namespace logfind
 
     File::File()
     :append_(false)
+    ,stdout_(false)
+    ,stderr_(false)
     {}
 
     bool File::parse(const std::vector<std::string>& args)
     {
+        for (auto& s : args)
+        {
+            if (s == "--stdout")
+                stdout_ = true;
+            else if (s == "stderr")
+                stderr_ = true;
+            else if (s == "--append")
+                append_ = true;
+            else
+                name_ = s;
+        }
+
+        if (stdout_ || stderr_)
+            name_.clear();
+
+        if (!name_.empty())
+        {
+            if (theApp->file(name_.c_str(), append_) < 0)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     void File::on_command(int fd, uint32_t lineno, linebuf& matchingline)
     {
-        pattern_actions_->fd_ = theApp->file(name_.c_str(), append_);
+        if (stdout_)
+            pattern_actions_->fd_ = 0;
+        else if (stderr_)
+            pattern_actions_->fd_ = 1;
+        else
+            pattern_actions_->fd_ = theApp->file(name_.c_str(), append_);
     }
 
     /*********************************************************************/

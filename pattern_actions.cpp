@@ -49,6 +49,7 @@ namespace logfind
             return;
         linebuf lb;
         ctx->readLine(m->lineno, lb);
+        int fdSave = fd_;    // save
         for (Builtin *cmd : commands_)
         {
             cmd->aho_match_ = m;
@@ -58,6 +59,7 @@ namespace logfind
             if (disabled_)
                 return;     // we test here too since it might have just became disabled
         }
+        fd_ = fdSave;
         theApp->free(lb);
     }
 

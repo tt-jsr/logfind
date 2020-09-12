@@ -50,6 +50,8 @@ namespace logfind
         int flags = O_WRONLY | O_CREAT;
         if (append)
             flags |= O_APPEND; 
+        else
+            flags |= O_TRUNC;
         int fd = open(name, flags, 0644);
         files_.emplace(name, fd);
         return fd;

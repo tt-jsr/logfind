@@ -1,5 +1,97 @@
-See https://github.com/morenice/ahocorasick
-for aho-corasick algorithm
+Logfind
+
+Logfind provides similar functionality to grep -F (aka fgrep) and sed(1) programs.
+The user can specify mulitple search patterns with actions to be performed
+in each match.
+
+SYNTAX
+    The basic syntax is pretty simple.
+    /pattern/ {
+        action
+          .
+          .
+        }
+    }
+
+    Each time the pattern matches a line, the listed actions are executed
+    in the order listed.
+
+ACTIONS
+    The following actions are supported for each pattern match.
+
+    /pattern/ {
+        ...
+    }
+        Search for a pattern in the currently matched line. Each sub pattern
+        can own a set of actions to be executed.
+
+    print
+        Print the current matched line to the current output.
+
+    print "fmt"
+        Print the matching line to the current output.
+        "fmt" is a quoted string containing the text to be printed. The
+        following variables are defined.
+            ${lineno}   Line number of the match
+            ${offset}   File offset of the line where the match was found
+            ${match}    Print the matched text.
+            ${match+n}  Print match pattern + n addional chars
+            ${match/c}  Print match pattern until the given delimiter 'c' is seen
+            ${line}     Print the whole line
+            ${line:m,}  Print the line, from m to end of line. If m < 0, the starting
+                        position is m chanacters from the end.
+            ${line:,n}  Print the line, from begining of line to n. If n < 0, the 
+                        ending position is n characters from the end of the line.
+            ${line:m,n} Print the line columns m through n. Negative numbers apply as above.
+            ${time_t}   If the match line contains a timestamp, print it in unix time 
+                        format (time_t). The line's timestamp must be in TTLOG format
+            ${filename} Print the current filename
+
+    count "fmt"
+        Count the number of matches of the pattern. "fmt" will be printed when the 
+        program exits. Format MUST contain a %d printf specifier to print the count, 
+        such as "Number of matches: %d\n"
+
+    max-count n [--exit]
+        Perform the actions n number of times. If --exit is specified, the program will
+        exit when the count is reached.
+
+    file "filename" [--append]
+    file --stdout
+    file --stderr
+        The output of actions following this action will be sent to "filename". It is possible to 
+        send output to multiple files, or have each pattern match sent to separate files
+        if desired.
+
+    after n
+        Print n lines after the match
+
+    before n
+        Print n lines after the match
+
+    exit
+        Exit the program
+            
+PERFORMANCE
+    This program uses the aho-corasick algorithim for finding the pattern matches. With an 
+    arbitrary number of patterns to search for, it is guaranteed to look at each input byte
+    only once, therefore it will run in linear time with the size of the file. The implementation
+    also does not break the input into lines but rather the pattern search is run against 
+    the entire input, only when a match is found are the bounding line endings located. The
+    input is backed by in LRU cache of 1MB pages with read ahead to support the 'before' and 
+    'after' actions.
+
+    Each sub-pattern is run using a separate context for the algorithim. Again, running multiple
+    pattern searches on a line match will run in linear time.
+
+EXAMPLES
+
+NOTES
+    See https://github.com/morenice/ahocorasick
+    for aho-corasick algorithm
+
+    I have not used flex/bison for the parser, but hand coded it. This will prob change in the future
+    but as of now, it is rather crude and sensitive to syntax errors and may crash if not correct.
 
 
 Config sample
@@ -15,50 +107,6 @@ Config sample
 /!user-defined!/ {
     
 }
-
-/pattern/ {
-    # If present, print n lines before the match
-    after n
-
-    before n
-
-    # print a maximum number of times. if --exit, exit
-    # the program
-    max-count --exit n
-
-    # Print format, if it does not exist, print the line
-    # ${lineno}  Line number
-    # ${offset}  File offset
-    # ${match:n}  Print match pattern + addional chars
-    # ${match/c}  Print match pattern until the given delimiter 'c' is seen
-    # ${line}     Print the whole line
-    # ${line:m,}  Print the line, from m to eol
-    # ${line:,n}  Print the line, from bol to n
-    # ${line:m,n} Print the line columns m through n
-    # ${time_t}   If the match line contains a timestamp, 
-                  print it in unix time format (time_t)
-    # ${filename} print the current filename
-    print "fmt"
-    
-    regex args...
-
-    # Search for a sub pattern/
-    # This will only search the matched line
-    /pattern/ {
-        commands
-            .
-            .
-            .
-    }
-
-
-    # Send output to this file
-    file "junk"
-
-    # If present, exit when pattern is found
-    exit
-}
-
 
 ##################################################################
 OrderId {

@@ -54,6 +54,7 @@ namespace logfind
         int line_start_;
         int line_end_;
         char match_delim_;
+        int match_additional_;
     };
 
     struct LineSearch : public Builtin
@@ -89,6 +90,8 @@ namespace logfind
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
         std::string name_;
         bool append_;
+        bool stdout_;
+        bool stderr_;
     };
 
     struct Count : public Builtin
@@ -99,6 +102,7 @@ namespace logfind
         void on_exit(int fd);
         uint32_t count_;
         std::string format_;
+        bool percent_d_;
     };
 
     Builtin *BuiltinFactory(const std::string&);
