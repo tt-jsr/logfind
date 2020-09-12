@@ -31,6 +31,16 @@ namespace logfind
         uint8_t lines_;
     };
 
+    struct MaxCount : public Builtin
+    {
+        MaxCount();
+        bool parse(const std::vector<std::string>&) override;
+        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        uint32_t max_count_;
+        uint32_t current_count_;
+        bool exit_;
+    };
+
     struct Print : public Builtin
     {
         Print();

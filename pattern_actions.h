@@ -24,10 +24,13 @@ namespace logfind
         ~PatternActions();
         void on_match(AhoContext *ctx, struct aho_match_t* m);
         void add_command(Builtin *);
+        void disable(bool);
+        bool is_disabled();
     private:
         friend class File;
         int fd_;
         std::vector<Builtin *> commands_;
+        bool disabled_;
     };
 
     PatternActionsPtr MakePatternActions();

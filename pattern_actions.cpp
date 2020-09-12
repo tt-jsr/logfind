@@ -16,6 +16,7 @@ namespace logfind
 
     PatternActions::PatternActions()
     :fd_(1)
+    , disabled_(false)
     {
     }
 
@@ -27,6 +28,16 @@ namespace logfind
         }
     }
 
+    void PatternActions::disable(bool b)
+    {
+        disabled_ = b;
+    }
+
+    bool PatternActions::is_disabled()
+    {
+        return disabled_; 
+    }
+
     void PatternActions::add_command(Builtin *bi)
     {
         commands_.push_back(bi);
@@ -34,6 +45,8 @@ namespace logfind
 
     void PatternActions::on_match(AhoContext *ctx, struct aho_match_t* m)
     {
+        if (disabled_)
+            return;
         linebuf lb;
         ctx->readLine(m->lineno, lb);
         for (Builtin *cmd : commands_)
@@ -42,6 +55,8 @@ namespace logfind
             cmd->pCtx_ = ctx;
             cmd->pattern_actions_ = this;
             cmd->on_command(fd_, m->lineno, lb);
+            if (disabled_)
+                return;     // we test here too since it might have just became disabled
         }
         theApp->free(lb);
     }

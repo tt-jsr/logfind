@@ -1,6 +1,7 @@
 #include <sstream>
 #include <unistd.h>
 #include <limits>
+#include <assert.h>
 #include "lru_cache.h"
 #include "aho_context.h"
 #include "file.h"
@@ -127,12 +128,19 @@ namespace logfind
                     p += 6;
                     if (parse_line_fmt(p) == false)
                         return false;
+                    ++p;  // pass the '}'
                 }
-                else if (strncmp(p, "${match/", 8) == 0)
+                else if (strncmp(p, "${match", 7) == 0)
                 {
                     strm << "${4}";
-                    p += 8;
-                    match_delim_ = *p;
+                    p += 7;
+                    if (*p == '/')
+                    {
+                        ++p; // get pass the '/'
+                        match_delim_ = *p;
+                        ++p;    // get pass the delimiter
+                    }
+                    assert(*p == '}');
                     ++p;
                 }
                 else
@@ -199,12 +207,15 @@ namespace logfind
             char *src = matchingline.buf+aho_match_->line_match_pos;
             write(fd, src, aho_match_->len);
             src += aho_match_->len;
-            while (*src != match_delim_ && src < matchingline.buf+matchingline.len)
-            {
-                write(fd, src, 1);
-                ++src;
+            if (match_delim_ != '\0') {
+                while (*src && *src != match_delim_ && src < matchingline.buf+matchingline.len)
+                {
+                    write(fd, src, 1);
+                    ++src;
+                }
             }
             p += 4;
+            return;
         }
     }
 
@@ -221,7 +232,6 @@ namespace logfind
             if (*p == '$' && *(p+1) == '{')
             {
                 substitute(p, fd, lineno, matchingline);
-                ++p;
             }
             else if (*p == '\\' && *(p+1) == 'n')
             {
@@ -267,6 +277,48 @@ namespace logfind
         lineSearch_->build_trie();
     }
 
+    /*********************************************************************/
+
+    MaxCount::MaxCount()
+    :max_count_(0)
+    ,current_count_(0)
+    ,exit_(false)
+    {
+    }
+
+    bool MaxCount::parse(const std::vector<std::string>& args)
+    {
+        for (auto& s : args)
+        {
+            if (s == "--exit")
+                exit_ = true;
+            else
+            {
+                try
+                {
+                    max_count_ = std::strtol(s.c_str(), nullptr, 10);
+                }
+                catch (std::exception& e)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    void MaxCount::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    {
+        if (max_count_ == 0)
+            return;     // disabled
+        if (current_count_ == max_count_)
+        {
+            pattern_actions_->disable(true);
+            if (exit_)
+                theApp->exit();
+        }
+        ++current_count_;
+    }
     /*********************************************************************/
 
     bool Exit::parse(const std::vector<std::string>& args)
@@ -318,6 +370,8 @@ namespace logfind
             return new Exit();
         else if (name == "file")
             return new File();
+        else if (name == "max-count")
+            return new MaxCount();
         //else if (name == "after")
             //return new After();
         //else if (name == "before")
