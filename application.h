@@ -19,6 +19,7 @@ namespace logfind
 
         void on_exit();
         void exit();
+        std::string filename();
         void NamedPatternAction(const char *name, PatternActionsPtr);
         PatternActionsPtr GetNamedPattern(const char *);
         int file(const char *, bool append);

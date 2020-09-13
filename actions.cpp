@@ -9,6 +9,7 @@
 #include "application.h"
 #include "actions.h"
 #include "pattern_actions.h"
+#include "utilities.h"
 
 namespace logfind
 {
@@ -151,6 +152,16 @@ namespace logfind
                     assert(*p == '}');
                     ++p;
                 }
+                else if (strncmp(p, "${filename}", 11) == 0)
+                {
+                    strm << "${5}";
+                    p += 11;
+                }
+                else if (strncmp(p, "${time}", 11) == 0)
+                {
+                    strm << "${6}";
+                    p += 7;
+                }
                 else
                 {
                     strm << *p;
@@ -231,6 +242,23 @@ namespace logfind
                     --n;
                 }
             }
+            p += 4;
+            return;
+        }
+        if (strncmp(p, "${5}", 4) == 0)     // ${filename}
+        {
+            std::string fname = theApp->filename();
+            write (fd, fname.c_str(), fname.size());
+            p += 4;
+            return;
+        }
+        if (strncmp(p, "${6}", 4) == 0)     // ${time}
+        {
+            time_t t = TTLOG_timestamp(matchingline.buf, matchingline.len);
+            char buf[32];
+            int r = sprintf(buf, "%ld", t);
+            if (r)
+                write (fd, buf, r);
             p += 4;
             return;
         }
@@ -356,7 +384,7 @@ namespace logfind
 
     Count::Count()
     :count_(0)
-    ,percent_d_(false)
+    ,use_count_format_(false)
     {
     }
 
@@ -364,45 +392,39 @@ namespace logfind
     {
         for (auto& s : args)
         {
-            auto iter = s.begin();
-            while (iter != s.end())
+            const char *p = s.c_str();
+            const char *end = p + s.size();
+            while (*p)
             {
-                if (*iter == '\\')
+                if (*p == '\\')
                 {
-                    ++iter;
-                    if (*iter == 'n')
+                    ++p;
+                    if (*p == 'n')
                     {
                         format_.push_back('\n');
                     }
-                    else if (*iter == 't')
+                    else if (*p == 't')
                     {
                         format_.push_back('\t');
                     }
                     else
                     {
-                        format_.push_back(*iter);
+                        format_.push_back(*p);
                     }
-                    ++iter;
+                    ++p;
                 }
-                else if (*iter == '%')
+                else if ((end-p)>8 && memcmp(p, "${count}", 8) == 0)
                 {
-                    format_.push_back(*iter);
-                    ++iter;
-                    if (*iter == 'd')
-                    {
-                        if (percent_d_)
-                            return false;   // too many %d
-                        percent_d_ = true;
-                    }
-                    else
-                        return false;   // unsupported format
-                    format_.push_back(*iter);
-                    ++iter;
+                    format_ += "%d";
+                    if (use_count_format_)
+                        return false;   // too many %d
+                    use_count_format_ = true;
+                    p += 8;
                 }
                 else
                 {
-                    format_.push_back(*iter);
-                    ++iter;
+                    format_.push_back(*p);
+                    ++p;
                 }
             }
         }
@@ -416,10 +438,10 @@ namespace logfind
 
     void Count::on_exit(int fd)
     {
-        if (percent_d_)
+        if (use_count_format_)
             dprintf(fd, format_.c_str(), count_);
         else
-            dprintf(fd, format_.c_str(), count_);
+            dprintf(fd, format_.c_str());
     }
 
     /*********************************************************************/
@@ -480,6 +502,75 @@ namespace logfind
             pattern_actions_->fd_ = 1;
         else
             pattern_actions_->fd_ = theApp->file(name_.c_str(), append_);
+    }
+
+    /*********************************************************************/
+
+    Interval::Interval()
+    :lasttime_(0)
+    ,use_time_format_(false)
+    {
+    }
+
+    bool Interval::parse(const std::vector<std::string>& args)
+    {
+        for (auto& s : args)
+        {
+            const char *p = s.c_str();
+            const char *end = p + s.size();
+            while (*p)
+            {
+                if (*p == '\\')
+                {
+                    ++p;
+                    if (*p == 'n')
+                    {
+                        format_.push_back('\n');
+                    }
+                    else if (*p == 't')
+                    {
+                        format_.push_back('\t');
+                    }
+                    else
+                    {
+                        format_.push_back(*p);
+                    }
+                    ++p;
+                }
+                else if ((end-p) >= 7 && memcmp(p, "${time}", 7) == 0)
+                {
+                    format_ += "%ld";
+                    p += 7;
+                    if (use_time_format_)
+                        return false;   // too many %d
+                    use_time_format_ = true;
+                    ++p;
+                }
+                else
+                {
+                    format_.push_back(*p);
+                    ++p;
+                }
+            }
+        }
+        return true;
+    }
+
+    void Interval::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    {
+        uint64_t ts = TTLOG_timestamp(matchingline.buf, matchingline.len);
+        int64_t micros = (int64_t)ts - (int64_t)lasttime_;
+        lasttime_ = ts;
+        if (micros < 0)
+            micros = -micros;
+        if (use_time_format_)
+            dprintf(fd, format_.c_str(), micros);
+        else
+            dprintf(fd, format_.c_str());
+    }
+
+    void Interval::on_exit(int fd)
+    {
     }
 
     /*********************************************************************/

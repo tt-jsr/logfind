@@ -44,8 +44,8 @@ ACTIONS
 
     count "fmt"
         Count the number of matches of the pattern. "fmt" will be printed when the 
-        program exits. Format MUST contain a %d printf specifier to print the count, 
-        such as "Number of matches: %d\n"
+        program exits. Format must contain a ${count} specifier to print the count, 
+        such as "Number of matches: ${count}\n"
 
     max-count n [--exit]
         Perform the actions n number of times. If --exit is specified, the program will
@@ -57,6 +57,12 @@ ACTIONS
         The output of actions following this action will be sent to "filename". It is possible to 
         send output to multiple files, or have each pattern match sent to separate files
         if desired.
+
+    interval "fmt"
+        Print the time since the last pattern match. The matched patterns must contain a TTLOG
+        timestamp.
+        "fmt" will be used to print the time. Format MUST contain a ${time} specifier to 
+        print the time, such as "Number of seconds: ${time}\n"
 
     after n [--fmt "fmt"]
         Print n lines after the match. 

@@ -102,7 +102,18 @@ namespace logfind
         void on_exit(int fd);
         uint32_t count_;
         std::string format_;
-        bool percent_d_;
+        bool use_count_format_;
+    };
+
+    struct Interval : public Action
+    {
+        Interval();
+        bool parse(const std::vector<std::string>&) override;
+        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_exit(int fd);
+        uint64_t lasttime_;
+        std::string format_;
+        bool use_time_format_;
     };
 
     Action *ActionFactory(const std::string&);

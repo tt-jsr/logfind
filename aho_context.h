@@ -50,6 +50,7 @@ namespace logfind
     {
     public:
         bool find(const char *fname);
+        std::string filename() {return file.filename();}
     protected:
         ReadFile file;
     private:

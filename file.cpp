@@ -42,9 +42,15 @@ namespace logfind
             fd_ = ::open(fname, O_RDONLY);
             if (fd_ < 0)
                 return false;
+            filename_ = fname;
         }
         read_();
         return true;
+    }
+
+    std::string ReadFile::filename()
+    {
+        return filename_;
     }
 
     Buffer *ReadFile::getBufferFromFileOffset(uint64_t offset)

@@ -17,6 +17,7 @@ namespace logfind
         char get();
         bool readLine(uint64_t lineoff, linebuf&);
         bool eof();
+        std::string filename();
     private:
         int read_();
         Buffer *getBufferFromFileOffset(uint64_t offset);
@@ -28,6 +29,7 @@ namespace logfind
         Buffer *buffer_;
         LRUCache cache_;
         bool eof_;
+        std::string filename_;
     };
 }
 #endif

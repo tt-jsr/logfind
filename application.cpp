@@ -36,6 +36,11 @@ namespace logfind
         return exit_flag;
     }
 
+    std::string Application::filename()
+    {
+        return pCtx_->filename();
+    }
+
     AhoFileContextPtr Application::search()
     {
         return pCtx_;
