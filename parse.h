@@ -13,7 +13,8 @@ namespace logfind
         TOKEN_WORD,
         TOKEN_SEARCH_PATTERN,
         TOKEN_QUOTED_STRING,
-        TOKEN_NL
+        TOKEN_NL,
+        TOKEN_HASH
     };
 
     struct Token

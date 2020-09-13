@@ -36,6 +36,9 @@ namespace
         case logfind::TOKEN_SEARCH_PATTERN:
             printf ("TOKEN_SEARCH: %s\n", t.str.c_str());
             break;
+        case logfind::TOKEN_HASH:
+            printf ("TOKEN_HASH: %s\n", t.str.c_str());
+            break;
         }
     }
 }
@@ -92,6 +95,22 @@ namespace logfind
                     t.tok = TOKEN_NL;
                     t.lineno = lineno;
                     t.str = "\n";
+                    tokens_.push_back(t);
+                    ++lineno;
+#ifdef DEBUG_LOG
+                    ptoken(t);
+#endif
+                    c = fgetc(fp);
+                    if (c == EOF)
+                        return;
+                }
+                break;
+            case '#':
+                {
+                    Token t;
+                    t.tok = TOKEN_HASH;
+                    t.lineno = lineno;
+                    t.str = "#";
                     tokens_.push_back(t);
                     ++lineno;
 #ifdef DEBUG_LOG
@@ -241,6 +260,13 @@ namespace logfind
                     assert(tokens_[tokIdx_].tok == TOKEN_CLOSE_BRACE);
                 }
                 break;
+            case TOKEN_HASH:
+                {
+                    ++tokIdx_;
+                    while (tokens_[tokIdx_].tok != TOKEN_NL)
+                        ++tokIdx_;
+                }
+                break;
             case TOKEN_NL:
                 break;
             default:
@@ -342,6 +368,13 @@ namespace logfind
                 break;
             case TOKEN_NL:
                 ++tokIdx_;
+                break;
+            case TOKEN_HASH:
+                {
+                    ++tokIdx_;
+                    while (tokens_[tokIdx_].tok != TOKEN_NL)
+                        ++tokIdx_;
+                }
                 break;
             default:
                 printf ("skipping: ");

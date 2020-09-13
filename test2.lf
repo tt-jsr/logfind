@@ -2,6 +2,7 @@
     print
 }
 
+# This is a test
 /S H U T D O W N/ {
     print
 }
@@ -12,6 +13,7 @@
         / account_id=/ {
             print "${match/ }\n"
         }
+# This is some more comments
         / user_id=/ {
             print "${match/ }\n"
         }
@@ -21,7 +23,7 @@
         print "NOS: ${lineno}: ${line:,120}\n"
     }
     /EXEC_TYPE_REPLACE/ {
-        count "Num of replace: %d\n"
+        count "Num of replace: ${count}\n"
         file "cxlrpl.log" 
         print
     }
@@ -49,6 +51,5 @@
         }
         print "OCR: ${lineno}: ${line:,120}\n"
     }
-
 }
 
