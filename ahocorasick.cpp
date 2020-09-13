@@ -177,7 +177,7 @@ unsigned int aho_findtext(struct ahocorasick * aho, unsigned long long int linen
     return match_count;
 }
 
-inline void aho_register_match_callback(struct ahocorasick * aho,
+void aho_register_match_callback(struct ahocorasick * aho,
         void (*callback_match)(void* arg, struct aho_match_t*),
         void *arg)
 {

@@ -6,8 +6,8 @@
 #include "application.h"
 #include "pattern_actions.h"
 
-extern "C" void callback_match(void *arg, struct aho_match_t* m);
-extern "C" char aho_getchar(void *arg);
+void callback_match(void *arg, struct aho_match_t* m);
+char aho_getchar(void *arg);
 
 namespace logfind
 {
@@ -117,13 +117,13 @@ namespace logfind
     }
 }
 
-extern "C" char aho_getchar(void *arg)
+char aho_getchar(void *arg)
 {
     logfind::AhoContext *pCtx = (logfind::AhoContext *)arg;
     return pCtx->get();
 }
 
-extern "C" void callback_match(void *arg, struct aho_match_t* m)
+void callback_match(void *arg, struct aho_match_t* m)
 {
     logfind::AhoContext *pCtx = (logfind::AhoContext *)arg;
     pCtx->on_match(m);

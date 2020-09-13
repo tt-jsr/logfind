@@ -8,10 +8,7 @@
 #include <memory>
 #include "file.h"
 
-extern "C"
-{
 #include "ahocorasick.h"
-}
 
 namespace logfind
 {
