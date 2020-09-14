@@ -25,7 +25,8 @@
     /EXEC_TYPE_REPLACE/ {
         count "Num of replace: ${count}\n"
         file "cxlrpl.log" 
-        print
+        interval "CxpRpl Interval: ${time}\n"
+        print "${time} ${line}\n"
     }
     /EXEC_TYPE_TRADE/ {
         / account_id=/ {

@@ -34,12 +34,12 @@ ACTIONS
             ${match/c}  Print match pattern until the given delimiter 'c' is seen
             ${line}     Print the whole line
             ${line:m,}  Print the line, from m to end of line. If m < 0, the starting
-                        position is m chanacters from the end.
+                        position is m characters from the end.
             ${line:,n}  Print the line, from begining of line to n. If n < 0, the 
                         ending position is n characters from the end of the line.
             ${line:m,n} Print the line columns m through n. Negative numbers apply as above.
-            ${time_t}   If the match line contains a timestamp, print it in unix time 
-                        format (time_t). The line's timestamp must be in TTLOG format
+            ${time}     If the match line contains a timestamp, print it as the number
+                        of microseconds. The line's timestamp must be in TTLOG format
             ${filename} Print the current filename
 
     count "fmt"
@@ -61,7 +61,7 @@ ACTIONS
     interval "fmt"
         Print the time since the last pattern match. The matched patterns must contain a TTLOG
         timestamp.
-        "fmt" will be used to print the time. Format MUST contain a ${time} specifier to 
+        "fmt" will be used to print the time. Format must contain a ${time} specifier to 
         print the time, such as "Number of seconds: ${time}\n"
 
     after n [--fmt "fmt"]
@@ -81,7 +81,7 @@ ACTIONS
         ...
     }
         Search for a pattern in the currently matched line. Each sub pattern
-        can own a set of actions to be executed.
+        can define a set of actions to be executed.
 
             
 PERFORMANCE
@@ -97,6 +97,38 @@ PERFORMANCE
     pattern searches on a line match will run in linear time.
 
 EXAMPLES
+    Simple example show a single search
+        /ExecutionReport/ {
+            print
+        }
+
+    You can search for multiple patterns
+        /ExecutionReport/ {
+            print
+        }
+
+        /OrderCancelReject/ {
+            print
+        }
+
+    Print only the first match
+        /ExecutionReport/ {
+            max-count 1   
+            print
+        }
+
+    Separate input into multiple files
+        /ExecutionReport/ {
+            file "ers.log"
+            print
+        }
+
+        /OrderCancelReject/ {
+            file "ocr.log"
+            print
+            file --stdout
+            count "Number of ocrs: ${count}"   # lets count how many we found to stdout
+        }
 
 NOTES
     See https://github.com/morenice/ahocorasick

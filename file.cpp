@@ -33,7 +33,7 @@ namespace logfind
 
     bool ReadFile::open(const char *fname)
     {
-        if (fname == nullptr)
+        if (fname == nullptr || fname[0] == '\0')
         {
             fd_ = 0;
         }

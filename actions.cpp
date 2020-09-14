@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <limits>
 #include <assert.h>
+#include <iostream>
 #include "lru_cache.h"
 #include "aho_context.h"
 #include "file.h"
@@ -63,7 +64,6 @@ namespace logfind
         switch (*p)
         {
         case '}':
-            ++p;
             break;
         case ':':
             ++p;
@@ -130,6 +130,7 @@ namespace logfind
                     p += 6;
                     if (parse_line_fmt(p) == false)
                         return false;
+                    assert(*p == '}');
                     ++p;  // pass the '}'
                 }
                 else if (strncmp(p, "${match", 7) == 0)
@@ -157,7 +158,7 @@ namespace logfind
                     strm << "${5}";
                     p += 11;
                 }
-                else if (strncmp(p, "${time}", 11) == 0)
+                else if (strncmp(p, "${time}", 7) == 0)
                 {
                     strm << "${6}";
                     p += 7;
@@ -254,7 +255,7 @@ namespace logfind
         }
         if (strncmp(p, "${6}", 4) == 0)     // ${time}
         {
-            time_t t = TTLOG_timestamp(matchingline.buf, matchingline.len);
+            uint64_t t = TTLOG2micros(matchingline.buf, matchingline.len);
             char buf[32];
             int r = sprintf(buf, "%ld", t);
             if (r)
@@ -539,12 +540,11 @@ namespace logfind
                 }
                 else if ((end-p) >= 7 && memcmp(p, "${time}", 7) == 0)
                 {
-                    format_ += "%ld";
+                    format_ += "%s";
                     p += 7;
                     if (use_time_format_)
                         return false;   // too many %d
                     use_time_format_ = true;
-                    ++p;
                 }
                 else
                 {
@@ -558,13 +558,20 @@ namespace logfind
 
     void Interval::on_command(int fd, uint32_t lineno, linebuf& matchingline)
     {
-        uint64_t ts = TTLOG_timestamp(matchingline.buf, matchingline.len);
+        uint64_t ts = TTLOG2micros(matchingline.buf, matchingline.len);
+        if (lasttime_ == 0)
+        {
+            lasttime_ = ts;
+            return;
+        }
         int64_t micros = (int64_t)ts - (int64_t)lasttime_;
         lasttime_ = ts;
         if (micros < 0)
             micros = -micros;
+        std::string s;
+        Micros2String(micros, s);
         if (use_time_format_)
-            dprintf(fd, format_.c_str(), micros);
+            dprintf(fd, format_.c_str(), s.c_str());
         else
             dprintf(fd, format_.c_str());
     }
@@ -587,6 +594,8 @@ namespace logfind
             return new MaxCount();
         else if (name == "count")
             return new Count();
+        else if (name == "interval")
+            return new Interval();
         //else if (name == "after")
             //return new After();
         //else if (name == "before")
