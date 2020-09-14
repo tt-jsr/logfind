@@ -42,6 +42,9 @@ ACTIONS
                         of microseconds. The line's timestamp must be in TTLOG format
             ${filename} Print the current filename
 
+        Note: If a "fmt" is specified, a NL is not automatically added. You must supply
+              the \n if you want a new line.
+
     count "fmt"
         Count the number of matches of the pattern. "fmt" will be printed when the 
         program exits. Format must contain a ${count} specifier to print the count, 

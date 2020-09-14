@@ -13,6 +13,13 @@ namespace logfind
         virtual void on_command(int fd, uint32_t lineno, linebuf& matching_line) = 0;
         virtual void on_exit(int fd) {}
 
+        //helper functions
+        // Get the starting position of the match
+        uint32_t get_match_pos();
+
+        // Get the match len
+        uint32_t get_match_len();
+
         AhoContext *pCtx_;
         PatternActions *pattern_actions_;
         struct aho_match_t *aho_match_;

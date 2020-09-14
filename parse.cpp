@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <sstream>
+#include <iostream>
 #include <assert.h>
 #include "lru_cache.h"
 #include "aho_context.h"
@@ -19,25 +20,25 @@ namespace
         switch (t.tok)
         {
         case logfind::TOKEN_NL:
-            printf ("TOKEN_NL\n");
+            std::cerr << "TOKEN_NL" << std::endl;
             break;
         case logfind::TOKEN_OPEN_BRACE:
-            printf ("TOKEN_OPEN_BRACE\n");
+            std::cerr << "TOKEN_OPEN_BRACE" << std::endl;
             break;
         case logfind::TOKEN_CLOSE_BRACE:
-            printf ("TOKEN_CLOSE_BRACE\n");
+            std::cerr << "TOKEN_CLOSE_BRACE" << std::endl;
             break;
         case logfind::TOKEN_QUOTED_STRING:
-            printf ("TOKEN_QUOTED_STRING: %s\n", t.str.c_str());
+            std::cerr << "TOKEN_QUOTED_STRING: " << t.str.c_str() << std::endl;
             break;
         case logfind::TOKEN_WORD:
-            printf ("TOKEN_WORD: %s\n", t.str.c_str());
+            std::cerr << "TOKEN_WORD: " << t.str.c_str() << std::endl;
             break;
         case logfind::TOKEN_SEARCH_PATTERN:
-            printf ("TOKEN_SEARCH: %s\n", t.str.c_str());
+            std::cerr << "TOKEN_SEARCH: " << t.str.c_str() << std::endl;
             break;
         case logfind::TOKEN_HASH:
-            printf ("TOKEN_HASH: %s\n", t.str.c_str());
+            std::cerr << "TOKEN_HASH: " << t.str.c_str() << std::endl;
             break;
         }
     }
@@ -63,7 +64,7 @@ namespace logfind
         tokenize(fp);
         fclose(fp);
 #ifdef DEBUG_LOG
-        printf ("tokenize complete\n");
+        std::cerr << "tokenize complete\n" << std::endl;
 #endif
         AhoFileContextPtr ptr = theApp->search();
         try
@@ -72,7 +73,7 @@ namespace logfind
         }
         catch (std::exception& e)
         {
-            printf ("%s\n", e.what());
+            std::cerr << e.what() << std::endl;
             return false;
         }
         return true;
@@ -282,7 +283,7 @@ namespace logfind
     void Parse::pattern_action(PatternActionsPtr pa)
     {
 #ifdef DEBUG_LOG
-        printf ("parse_action\n");
+        std::cerr << "parse_action" << std::endl;
 #endif
         assert(tokens_[tokIdx_].tok == TOKEN_SEARCH_PATTERN);
         ++tokIdx_;
@@ -377,15 +378,14 @@ namespace logfind
                 }
                 break;
             default:
-                printf ("skipping: ");
 #ifdef DEBUG_LOG
+                std::cerr << "skipping: " << std::endl;
                 ptoken(tokens_[tokIdx_]);
 #endif
                 ++tokIdx_;
                 break;
             }
         }
-        printf("eot\n");
         std::stringstream strm;
         strm << "Error: Unexpected end of file";
         throw std::runtime_error(strm.str());

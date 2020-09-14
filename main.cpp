@@ -173,7 +173,7 @@ int main(int argc, char ** argv)
         logfind::Parse parse;
         if (parse.parse(script.c_str()) == false)
         {
-            std::cout << "Failed to open/parse " << script << std::endl;
+            std::cerr << "Failed to open/parse " << script << std::endl;
             return 1;
         }
     }
@@ -183,12 +183,10 @@ int main(int argc, char ** argv)
     logfind::AhoFileContextPtr ptr = app.search();
     if (ptr->find(infile.c_str()) == false)
     {
-        std::cout << "Failed to open " << infile << std::endl;
+        std::cerr << "Failed to open " << infile << std::endl;
         return 1;
     }
     app.on_exit();
     return 0;
-
-    return file_test2();
 }
 

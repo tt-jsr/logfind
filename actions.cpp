@@ -14,6 +14,18 @@
 
 namespace logfind
 {
+    uint32_t Action::get_match_pos()
+    {
+        return aho_match_->line_match_pos;
+    }
+
+    uint32_t Action::get_match_len()
+    {
+        return aho_match_->len;
+    }
+
+    /*********************************************************************/
+
     bool After::parse(const std::vector<std::string>& args)
     {
     }
