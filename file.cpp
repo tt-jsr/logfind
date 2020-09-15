@@ -16,7 +16,7 @@ namespace logfind
 {
     
     ReadFile::ReadFile()
-    :fd_(-1)
+    :pInput(nullptr)
     ,buffer_(nullptr)
     ,offset_(0)
     ,lineno_(0)
@@ -28,24 +28,15 @@ namespace logfind
 
     ReadFile::~ReadFile()
     {
-        close(fd_);
+        if (pInput)
+            pInput->close();
+        delete pInput;
     }
 
-    bool ReadFile::open(const char *fname)
+    void ReadFile::attach(Input *p)
     {
-        if (fname == nullptr || fname[0] == '\0')
-        {
-            fd_ = 0;
-        }
-        else
-        {
-            fd_ = ::open(fname, O_RDONLY);
-            if (fd_ < 0)
-                return false;
-            filename_ = fname;
-        }
+        pInput = p;
         read_();
-        return true;
     }
 
     std::string ReadFile::filename()
@@ -82,11 +73,11 @@ namespace logfind
             buffer_->reset(offset_);
             cache_.add(buffer_);
         }
-        int r = read(fd_, buffer_->bufpos(), buffer_->availableBytes());
+        int r = pInput->read(buffer_->writePos(), buffer_->availableWriteBytes());
         if (r <= 0)
             eof_ = true;
         if (r > 0)
-            buffer_->datasize(r);
+            buffer_->incrementAvailableReadBytes(r);
         return r;
     }
 
@@ -112,5 +103,42 @@ namespace logfind
             lines_[++lineno_] = offset_;
         }
         return c;
+    }
+
+    /**************************************************************/
+    TFile::~TFile()
+    {
+        ::close(fd_);
+    }
+
+    void TFile::close()
+    {
+        ::close(fd_);
+    }
+
+    bool TFile::open(const char *fname)
+    {
+        if (fname == nullptr || fname[0] == '\0')
+        {
+            fd_ = 0;
+        }
+        else
+        {
+            fd_ = ::open(fname, O_RDONLY);
+            if (fd_ < 0)
+                return false;
+            filename_ = fname;
+        }
+        return true;
+    }
+
+    int TFile::read(char *dest, uint64_t len)
+    {
+        return ::read(fd_, dest, len);
+    }
+
+    std::string TFile::filename()
+    {
+        return filename_;
     }
 }

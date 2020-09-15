@@ -1,12 +1,12 @@
 CC=gcc
 CDEBUG = -g -O0
-CPPFLAGS = $(CDEBUG) -std=c++11 -I.
+CPPFLAGS = $(CDEBUG) -std=c++11 -I. -L.
 LDFLAGS=-g
-LIBS = -lstdc++ -lreadline
+LIBS = -lstdc++ -lreadline -lz
 
 DEPS = file.h ahocorasick.h aho_queue.h aho_text.h aho_trie.h aho_context.h buffer.h lru_cache.h application.h linebuf.h lru_cache.h pattern_actions.h actions.h parse.h utilities.h
 
-SRC	= main.cpp file.cpp buffer.cpp aho_context.cpp lru_cache.cpp application.cpp pattern_actions.cpp actions.cpp parse.cpp utilities.cpp ahocorasick.cpp aho_queue.cpp aho_trie.cpp
+SRC	= main.cpp file.cpp buffer.cpp aho_context.cpp lru_cache.cpp application.cpp pattern_actions.cpp actions.cpp parse.cpp utilities.cpp ahocorasick.cpp aho_queue.cpp aho_trie.cpp zcat.cpp
 
 OBJS	= $(SRC:.cpp=.o) 
 

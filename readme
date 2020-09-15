@@ -10,11 +10,33 @@ SYNTAX
         action
           .
           .
-        }
     }
 
     Each time the pattern matches a line, the listed actions are executed
     in the order listed.
+
+SPECIAL PATTERNS
+    There are a number of special patterns defined
+
+    /!program-start!/ {
+        # This pattern will get invoked at the start of the program
+    }
+
+    /!program-end!/ {
+        # This pattern will get invoked at the end of the program
+    }
+
+    /!file-start!/ {
+        # This pattern will get invoked at the start of processing a file
+    }
+    /!file-end!/ {
+        # This pattern will get invoked at the end of processing a file
+    }
+
+    /!user-defined!/
+        This pattern can be called by the 'call' action. It this is useful
+        for reusing a pattern and a set of actions. The string "user-defined"
+        is a place holder for the name you want to call it.
 
 ACTIONS
     The following actions are supported for each pattern match. Additional
@@ -26,12 +48,12 @@ ACTIONS
     print "fmt"
         Print the matching line to the current output.
         "fmt" is a quoted string containing the text to be printed. The
-        following variables are defined.
+        following format variables are defined:
             ${lineno}   Line number of the match
             ${offset}   File offset of the line where the match was found
             ${match}    Print the matched text.
-            ${match+n}  Print match pattern + n addional chars
-            ${match/c}  Print match pattern until the given delimiter 'c' is seen
+            ${match+n}  Print match text + n addional characters
+            ${match/c}  Print match text until the given delimiter 'c' is seen
             ${line}     Print the whole line
             ${line:m,}  Print the line, from m to end of line. If m < 0, the starting
                         position is m characters from the end.
@@ -63,9 +85,9 @@ ACTIONS
 
     interval "fmt"
         Print the time since the last pattern match. The matched patterns must contain a TTLOG
-        timestamp.
+        timestamp. The output will print the number of days, hours, minutes, seconds, and microseconds.
         "fmt" will be used to print the time. Format must contain a ${time} specifier to 
-        print the time, such as "Number of seconds: ${time}\n"
+        print the time, such as "Elapsed time since last message: ${time}\n"
 
     after n [--fmt "fmt"]
         Print n lines after the match. 
@@ -76,6 +98,9 @@ ACTIONS
         Print n lines before the match.
         --fmt: If present, will use the print format. For the purposes of the format, the entire 
                line is considered a match.
+
+    call name
+        Call a user defined pattern name
 
     exit
         Exit the program
@@ -114,6 +139,20 @@ EXAMPLES
             print
         }
 
+    Find the given order id and count them, output goes to
+    stdout. For each cxlrpl, print the elapsed time since 
+    the prvious cxlrpl and print the line number and line
+    to a file.
+        /bb77a423-f475-434b-a336-3bd09a32c464/ {
+            count "Number of er's: ${count}\n"
+            print
+            /EXEC_TYPE_REPLACED/ {
+                file "cxlrpl.log"
+                interval "CxlRpl interval: ${time}\n"
+                print "${lineno} ${line}\n"
+            }
+        }
+
     Print only the first match
         /ExecutionReport/ {
             max-count 1   
@@ -133,6 +172,22 @@ EXAMPLES
             count "Number of ocrs: ${count}"   # lets count how many we found to stdout
         }
 
+    Search for an order id, for each trade, 
+    print the account id and er.
+        /bb77a423-f475-434b-a336-3bd09a32c464/ {
+            /EXEC_TYPE_TRADE/ {
+                /account_id=/ {
+                    # Because er's are printed with space separated field=value
+                    # pairs (user_id=1234 account_id=5678 price=1.3...) we print
+                    # the starting at the match up to the first space character
+                    print "account-id: ${match/ }\n"
+
+                    # print the er
+                    print
+                }
+            }
+        }
+
 NOTES
     See https://github.com/morenice/ahocorasick
     for aho-corasick algorithm
@@ -143,18 +198,20 @@ NOTES
 
 Config sample
 
-/!begin!/ {
+/!program-start!/ {
     # This pattern will get invoked at the start of the program
 }
 
-/!end!/ {
+/!program-end!/ {
     # This pattern will get invoked at the end of the program
 }
 
-/!user-defined!/ {
-    
+/!file-start!/ {
+    # This pattern will get invoked at the start of processing a file
 }
-
+/!file-end!/ {
+    # This pattern will get invoked at the start of processing a file
+}
 ##################################################################
 OrderId {
     /ExecutionReport/ {

@@ -6,41 +6,42 @@
 namespace logfind
 {
     Buffer::Buffer()
-    :bufsize(BUFSIZE)
-    ,buffer(new char[BUFSIZE])
-    ,offset(0)
-    ,curpos(0)
-    ,datalen(0)
-    ,eob_(false)
+    :bufsize_(BUFSIZE)
+    ,buffer_(new char[BUFSIZE])
+    ,offset_(0)
+    ,readpos_(0)
+    ,datalen_(0)
     {
     }
 
     Buffer::~Buffer()
     {
-        delete [] buffer;
+        delete [] buffer_;
     }
 
     bool Buffer::containsFileOffset(uint64_t fileoffset)
     {
-        if (fileoffset >= offset && fileoffset < offset + datalen)
+        if (fileoffset >= offset_ && fileoffset < offset_ + datalen_)
             return true;
         return false;
     }
 
     uint32_t Buffer::getBufferOffsetFromFileOffset(uint64_t fileoff)
     {
-        return fileoff - offset;
+        if (containsFileOffset(fileoff) == false)
+            return (uint32_t)-1;
+        return fileoff - offset_;
     }
 
     bool Buffer::readline(uint64_t fileoffset, linebuf& lb)
     {
         theApp->alloc(lb);
         uint32_t bufpos = getBufferOffsetFromFileOffset(fileoffset);
-        const char *p = buffer + bufpos;
+        const char *p = buffer_ + bufpos;
         uint32_t count = bufpos;
         char *dest = lb.buf;
         uint32_t numwriten(0);
-        while (*p != '\n' && count < datalen && numwriten < lb.bufsize)
+        while (*p != '\n' && count < datalen_ && numwriten < lb.bufsize)
         {
             *dest++ = *p++;
             ++count;
@@ -53,49 +54,57 @@ namespace logfind
 
     bool Buffer::eob()
     {
-        return eob_;
+        return availableReadBytes() == 0;
     }
 
     char Buffer::getchar()
     {
-        if (curpos == datalen)
+        if (readpos_ == datalen_)
         {
-            eob_ = true;
             return 0;
         }
-        return buffer[curpos++];
+        return buffer_[readpos_++];
     }
 
     uint64_t Buffer::fileoffset()
     {
-        return offset;
+        return offset_;
     }
 
-    uint32_t Buffer::availableBytes()           
+    uint32_t Buffer::availableWriteBytes()           
     {
-        return bufsize-datalen;
+        return bufsize_-datalen_;
     }
 
-    char *Buffer::bufpos()                      
+    uint32_t Buffer::availableReadBytes()           
     {
-        return buffer+curpos;
+        return datalen_ - readpos_;
     }
 
-    void Buffer::datasize(uint32_t n)           
+    char *Buffer::readPos()
     {
-        datalen += n;
+        return buffer_+readpos_;
+    }
+
+    char *Buffer::writePos()
+    {
+        return buffer_+datalen_;
+    }
+
+    void Buffer::incrementAvailableReadBytes(uint32_t n)           
+    {
+        datalen_ += n;
     }
 
     bool Buffer::isFull()                       
     {
-        return datalen==bufsize;
+        return availableWriteBytes() == 0;
     }
 
     void Buffer::reset(uint64_t fileoffset)
     {
-        datalen = 0;
-        curpos = 0;
-        offset = fileoffset;
-        eob_ = false;
+        datalen_ = 0;
+        readpos_ = 0;
+        offset_ = fileoffset;
     }
 }
