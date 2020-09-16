@@ -67,14 +67,11 @@ namespace logfind
     /**************************************************************/
     bool AhoFileContext::find(const char *fname)
     {
-        TFile *pFile = new TFile();
-        bool r = pFile->open(fname);
+        bool r = file.open(fname);
         if (r == false)
         {
-            delete pFile;
             return false;
         }
-        file.attach(pFile);
         aho_findtext(&aho_, 0, 0, aho_getchar, this);
         return true;
     }

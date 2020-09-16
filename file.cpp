@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <assert.h>
+#include <iostream>
 #include "linebuf.h"
 #include "buffer.h"
 #include "lru_cache.h"
@@ -16,7 +17,7 @@ namespace logfind
 {
     
     ReadFile::ReadFile()
-    :pInput(nullptr)
+    :pInput_(nullptr)
     ,buffer_(nullptr)
     ,offset_(0)
     ,lineno_(0)
@@ -28,15 +29,23 @@ namespace logfind
 
     ReadFile::~ReadFile()
     {
-        if (pInput)
-            pInput->close();
-        delete pInput;
+        if (pInput_)
+            pInput_->close();
+        delete pInput_;
     }
 
-    void ReadFile::attach(Input *p)
+    bool ReadFile::open(const char * f)
     {
-        pInput = p;
-        read_();
+        filename_ = f;
+        if (strcmp(&filename_[filename_.size()-3], ".gz") == 0)
+            pInput_ = new ZInput();
+        else
+            pInput_ = new TInput();
+        if (pInput_->open(f) == false)
+            return false;
+        if (read_() < 0)
+            return false;
+        return true;
     }
 
     std::string ReadFile::filename()
@@ -73,7 +82,7 @@ namespace logfind
             buffer_->reset(offset_);
             cache_.add(buffer_);
         }
-        int r = pInput->read(buffer_->writePos(), buffer_->availableWriteBytes());
+        int r = pInput_->read(buffer_->writePos(), buffer_->availableWriteBytes());
         if (r <= 0)
             eof_ = true;
         if (r > 0)
@@ -106,17 +115,17 @@ namespace logfind
     }
 
     /**************************************************************/
-    TFile::~TFile()
+    TInput::~TInput()
     {
         ::close(fd_);
     }
 
-    void TFile::close()
+    void TInput::close()
     {
         ::close(fd_);
     }
 
-    bool TFile::open(const char *fname)
+    bool TInput::open(const char *fname)
     {
         if (fname == nullptr || fname[0] == '\0')
         {
@@ -132,13 +141,88 @@ namespace logfind
         return true;
     }
 
-    int TFile::read(char *dest, uint64_t len)
+    int TInput::read(char *dest, uint64_t len)
     {
         return ::read(fd_, dest, len);
     }
 
-    std::string TFile::filename()
+    /**************************************************************/
+
+    ZInput::~ZInput()
     {
-        return filename_;
+        ::close(fd_);
+    }
+
+    void ZInput::close()
+    {
+        ::close(fd_);
+    }
+
+    bool ZInput::open(const char *fname)
+    {
+        memset(in_, 0, sizeof(in_));
+        strm_.zalloc = Z_NULL;
+        strm_.zfree = Z_NULL;
+        strm_.opaque = Z_NULL;
+        strm_.avail_in = 0;
+        strm_.next_in = Z_NULL;
+
+        //int ret = inflateInit(&strm_);
+        int ret = inflateInit2(&strm_, 32+MAX_WBITS);
+        if (ret != Z_OK)
+        {
+            return false;
+        }
+
+        if (fname == nullptr || fname[0] == '\0')
+        {
+            fd_ = 0;
+        }
+        else
+        {
+            fd_ = ::open(fname, O_RDONLY);
+            if (fd_ < 0)
+                return false;
+            filename_ = fname;
+        }
+        return true;
+    }
+
+    int ZInput::read(char *dest, uint64_t len)
+    {
+        int ret;
+        if (strm_.avail_in == 0)
+        {
+            int r = ::read(fd_, in_, sizeof(in_));
+            if (r <= 0)
+            {
+                inflateEnd(&strm_);
+                ::close(fd_);
+                return r;
+            }
+
+            strm_.avail_in = r;
+            strm_.next_in = (Bytef *)in_;
+        }
+        strm_.avail_out = len;
+        strm_.next_out = (Bytef *)dest;
+        ret = inflate(&strm_, Z_NO_FLUSH);
+        assert(ret != Z_STREAM_ERROR);  /* state not clobbered */
+        switch (ret) {
+            case Z_NEED_DICT:
+                std::cerr << "Need Dict error - " << std::endl;
+                ret = Z_DATA_ERROR;     /* and fall through */
+            case Z_DATA_ERROR:
+                inflateEnd(&strm_);
+                ::close(fd_);
+                std::cerr << "Data Error" << std::endl;
+                return ret;
+            case Z_MEM_ERROR:
+                inflateEnd(&strm_);
+                ::close(fd_);
+                std::cerr << "Out of memory" << std::endl;
+                return ret;
+        }
+        return len - strm_.avail_out;
     }
 }

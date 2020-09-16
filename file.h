@@ -1,6 +1,7 @@
 #ifndef FILE_H_
 #define FILE_H_
 
+#include "zlib.h"
 
 namespace logfind
 {
@@ -12,37 +13,38 @@ namespace logfind
     public:
         virtual ~Input() {};
         
+        virtual bool open(const char *) = 0;
         virtual void close() = 0;
         virtual int read(char *dest, uint64_t len) = 0;
-        virtual std::string filename() = 0;
     };
 
-    class TFile : public Input
+    class TInput : public Input
     {
     public:
-        ~TFile();
+        ~TInput();
         // null for stdin
         bool open(const char *);
         void close() override;
         int read(char *dest, uint64_t len) override;
-        std::string filename() override;
     private:
         int fd_;
         std::string filename_;
     };
 
-    class ZFile : public Input
+    class ZInput : public Input
     {
     public:
-        ~ZFile();
+        ~ZInput();
         void close() override;
         // null for stdin
         bool open(const char *);
         int read(char *dest, uint64_t len) override;
-        std::string filename() override;
     private:
+        static const int CHUNK = 1024*1024;
         int fd_;
         std::string filename_;
+        z_stream strm_;
+        char in_[CHUNK];
     };
 
     class ReadFile
@@ -51,8 +53,7 @@ namespace logfind
         ReadFile();
         ~ReadFile();
 
-        // input must be ready for reading when attached
-        void attach(Input *);
+        bool open(const char *);
         char get();
         bool readLine(uint64_t lineoff, linebuf&);
         bool eof();
@@ -63,7 +64,7 @@ namespace logfind
     private:
         Buffer *getBufferFromFileOffset(uint64_t offset);
     private:
-        Input *pInput;
+        Input *pInput_;
         uint64_t offset_;
         uint64_t lineno_;
         std::unordered_map<uint64_t, uint64_t> lines_; // lineno => fileoffset
