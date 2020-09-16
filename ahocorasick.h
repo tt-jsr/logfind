@@ -11,8 +11,6 @@ struct aho_match_t
     unsigned long long int file_match_pos;     // Match position from begining of file
     unsigned long long int lineno;             // File line number
     unsigned long long int line_position_in_file;      // Fie position of begining of line
-
-
     int len;                            // Length of match
 };
 

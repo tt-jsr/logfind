@@ -31,11 +31,20 @@ namespace logfind
         aho_destroy(&aho_);
     }
 
+    int AhoContext::getPatternId(const char *p)
+    {
+        auto it = match_str_actions.find(p);
+        if (it != match_str_actions.end())
+            return it->second;
+        return -1;
+    }
+
     PatternActionsPtr AhoContext::add_match_text(const char *p, uint32_t len)
     {
         auto pa = logfind::MakePatternActions();
         int id = aho_add_match_text(&aho_, p, len);
         match_actions.emplace(id, pa);
+        match_str_actions.emplace(std::string(p, len), id);
         return pa;
     }
 
@@ -72,7 +81,9 @@ namespace logfind
         {
             return false;
         }
+        theApp->on_file_start(fname);
         aho_findtext(&aho_, 0, 0, aho_getchar, this);
+        theApp->on_file_end(fname);
         return true;
     }
 

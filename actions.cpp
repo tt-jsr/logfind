@@ -459,21 +459,6 @@ namespace logfind
 
     /*********************************************************************/
 
-    bool NamedPatternActions::parse(const std::vector<std::string>& args)
-    {
-    }
-
-    void NamedPatternActions::on_command(int fd, uint32_t lineno, linebuf& matchingline)
-    {
-        PatternActionsPtr pa = theApp->GetNamedPattern(name_.c_str());
-        if (pa)
-        {
-            pa->on_match(pCtx_, aho_match_);
-        }
-    }
-
-    /*********************************************************************/
-
     File::File()
     :append_(false)
     ,stdout_(false)

@@ -7,10 +7,12 @@
 namespace logfind
 {
     class AhoFileContext;
+    class AhoLineContext;
     struct linebuf;
     class PatternActions;
     using PatternActionsPtr = std::shared_ptr<PatternActions>;
     using AhoFileContextPtr = std::shared_ptr<AhoFileContext>;
+    using AhoLineContextPtr = std::shared_ptr<AhoLineContext>;
 
     class Application
     {
@@ -18,10 +20,12 @@ namespace logfind
         Application();
 
         void on_exit();
+        void on_start();
+        void on_file_start(const char *);
+        void on_file_end(const char *);
         void exit();
         std::string filename();
-        void NamedPatternAction(const char *name, PatternActionsPtr);
-        PatternActionsPtr GetNamedPattern(const char *);
+        AhoLineContextPtr GetNamedContext(const std::string&);
         int file(const char *, bool append);
         void free(linebuf& lb);
         bool alloc(linebuf& lb);
@@ -30,7 +34,7 @@ namespace logfind
         AhoFileContextPtr search();
     private:
         AhoFileContextPtr pCtx_;
-        std::unordered_map<std::string, PatternActionsPtr> named_patterns_;
+        AhoLineContextPtr pNamedPatternCtx_;
         std::unordered_map<std::string, int> files_;    // filepath=>fd
         bool exit_flag;
     };

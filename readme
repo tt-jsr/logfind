@@ -33,11 +33,6 @@ SPECIAL PATTERNS
         # This pattern will get invoked at the end of processing a file
     }
 
-    /!user-defined!/
-        This pattern can be called by the 'call' action. It this is useful
-        for reusing a pattern and a set of actions. The string "user-defined"
-        is a place holder for the name you want to call it.
-
 ACTIONS
     The following actions are supported for each pattern match. Additional
     actions can be easily defined and implemented for customizing.
@@ -98,9 +93,6 @@ ACTIONS
         Print n lines before the match.
         --fmt: If present, will use the print format. For the purposes of the format, the entire 
                line is considered a match.
-
-    call name
-        Call a user defined pattern name
 
     exit
         Exit the program

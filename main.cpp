@@ -7,91 +7,14 @@
 #include "actions.h"
 #include "parse.h"
 
-
-void test()
-{
-    logfind::Application app;
-
-    auto fileSearch = app.search();
-    auto pa = fileSearch->add_match_text("S T A R T");
-    pa->add_action(new logfind::Print());
-    pa = fileSearch->add_match_text("Orderserver is ready");
-    pa->add_action(new logfind::Print());
-    pa = fileSearch->add_match_text("loadbalancer invoked");
-    pa->add_action(new logfind::Print());
-    pa = fileSearch->add_match_text("build");
-    pa->add_action(new logfind::Print());
-    fileSearch->build_trie();
-
-    if (fileSearch->find("../fsh/cme-noisy.log") == false)
-    {
-        printf ("Failed to open file\n");
-    }
-}
-
-void test2()
-{
-    logfind::Application app;
-    auto fileSearch = app.search();
-    auto filePa = fileSearch->add_match_text("bb77a423-f475-434b-a336-3bd09a32c464");
-    fileSearch->build_trie();
-
-    logfind::LineSearch *searchCmd = new logfind::LineSearch();
-    filePa->add_action(searchCmd);
-    auto pa = searchCmd->add_match_text("EXEC_TYPE_TRADE");
-    pa->add_action(new logfind::Print());
-    pa = searchCmd->add_match_text("EXEC_TYPE_NEW");
-    pa->add_action(new logfind::Print());
-    searchCmd->build_trie();
-
-    if (fileSearch->find("../fsh/cme.clean") == false)
-    {
-        printf ("Failed to open file\n");
-    }
-}
-
-int file_test1()
-{
-    logfind::Application app;
-    logfind::Parse parse;
-    if (parse.parse("test.lf") == false)
-    {
-        printf ("Failed to open/parse test.lf\n");
-        return 1;
-    }
-
-    logfind::AhoFileContextPtr ptr = app.search();
-    if (ptr->find("../fsh/cme-noisy.log") == false)
-    {
-        printf ("Failed to open file\n");
-        return 1;
-    }
-    return 0;
-}
-
-int file_test2()
-{
-    logfind::Application app;
-    logfind::Parse parse;
-    if (parse.parse("test2.lf") == false)
-    {
-        printf ("Failed to open/parse test2.lf\n");
-        return 1;
-    }
-
-    logfind::AhoFileContextPtr ptr = app.search();
-    if (ptr->find("../fsh/cme.clean") == false)
-    {
-        printf ("Failed to open file\n");
-        return 1;
-    }
-    app.on_exit();
-    return 0;
-}
+static const char *version = ".9";
 
 void usage()
 {
-    std::cout << "usage: logfind ..." << std::endl;
+    std::cout << "usage: logfind [--script file] [--infile file] [--pattern]" << std::endl;
+    std::cout << "       logfind pattern pattern ... file" << std::endl;
+    std::cout << "               file can be '-' for stdin" << std::endl;
+    std::cout << "       logfind --version" << std::endl;
 }
 
 void AddPatterns(logfind::Application& app, std::vector<std::string>& patterns)
@@ -108,13 +31,17 @@ void AddPatterns(logfind::Application& app, std::vector<std::string>& patterns)
 int main(int argc, char ** argv)
 {
     std::string script;
-    std::string outfile;
     std::string infile;
-    std::vector<std::string> patterns;
+    std::vector<std::string> nodash;
 
     for (int a = 1; a < argc; ++a)
     {
-        if (strcmp (argv[a], "--script") == 0)
+        if (strcmp (argv[a], "--help") == 0 || strcmp(argv[a], "-h") == 0)
+        {
+            usage();
+            return 0;
+        }
+        else if (strcmp (argv[a], "--script") == 0)
         {
             ++a;
             if (a == argc)
@@ -124,17 +51,6 @@ int main(int argc, char ** argv)
                 return 1;
             }
             script = argv[a];
-        }
-        else if (strcmp (argv[a], "--outfile") == 0)
-        {
-            ++a;
-            if (a == argc)
-            {
-                usage();
-                std::cout << "--outfile requires filename" << std::endl;
-                return 1;
-            }
-            outfile = argv[a];
         }
         else if (strcmp (argv[a], "--infile") == 0)
         {
@@ -158,12 +74,26 @@ int main(int argc, char ** argv)
                 return 1;
             }
             std::cout << "adding " << argv[a] << std::endl;
-            patterns.push_back(std::string(argv[a]));
+            nodash.push_back(std::string(argv[a]));
+        }
+        else if (strcmp (argv[a], "--version") == 0 || strcmp(argv[a], "-v") == 0)
+        {
+            std::cerr << version << std::endl;
+            return 0;
+        }
+        else if (strcmp (argv[a], "-") == 0)
+        {
+            infile = "-";
+        }
+        else if (argv[a][0] == '-')
+        {
+            std::cerr << "Unknown argument: " << argv[a] << std::endl;
+            usage();
+            return 0;
         }
         else
         {
-            std::cout << "Unknown argument: " << argv[a] << std::endl;
-            return 1;
+            nodash.push_back(std::string(argv[a]));
         }
     }
 
@@ -178,8 +108,30 @@ int main(int argc, char ** argv)
         }
     }
 
-    AddPatterns(app, patterns);
+    if (nodash.size() == 1)
+    {
+        // we have a pattern and are going to read from stdin/infile
+        AddPatterns(app, nodash);
+    }
+    if (nodash.size() > 1)
+    {
+        if (!infile.empty())
+        {
+            // We have specified the input file, so everthing is a pattern
+            AddPatterns(app, nodash);
+        }
+        else
+        {
+            // We haven't specified the infile, so the last item is the file
+            infile = nodash.back();
+            nodash.pop_back();
+            AddPatterns(app, nodash);
+        }
+    }
 
+    if (infile.empty())
+        infile = "-";
+    app.on_start();
     logfind::AhoFileContextPtr ptr = app.search();
     if (ptr->find(infile.c_str()) == false)
     {

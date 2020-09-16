@@ -35,12 +35,14 @@ namespace logfind
         void build_trie();
         virtual char get() = 0;
         virtual bool readLine(uint64_t lineno, linebuf& l) = 0;
+        int getPatternId(const char *);
         void on_match(struct aho_match_t* m);
         void on_exit();
     protected:
 
         struct ahocorasick aho_;
         std::unordered_map<int, PatternActionsPtr> match_actions;
+        std::unordered_map<std::string, int> match_str_actions;
     };
 
     class AhoFileContext : public AhoContext

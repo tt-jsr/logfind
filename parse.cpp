@@ -256,7 +256,31 @@ namespace logfind
             {
             case TOKEN_SEARCH_PATTERN:
                 {
-                    PatternActionsPtr pa = fp->add_match_text(token.str.c_str(), token.str.size());
+                    PatternActionsPtr pa;
+                    if (token.str == "!program-start!")
+                    {
+                        AhoLineContextPtr ctx = theApp->GetNamedContext(token.str);
+                        pa = ctx->add_match_text(token.str.c_str(), token.str.size());
+                    }
+                    else if (token.str == "!program-end!")
+                    {
+                        AhoLineContextPtr ctx = theApp->GetNamedContext(token.str);
+                        pa = ctx->add_match_text(token.str.c_str(), token.str.size());
+                    }
+                    else if(token.str == "!file-start!")
+                    {
+                        AhoLineContextPtr ctx = theApp->GetNamedContext(token.str);
+                        pa = ctx->add_match_text(token.str.c_str(), token.str.size());
+                    }
+                    else if (token.str == "!file-end!")
+                    {
+                        AhoLineContextPtr ctx = theApp->GetNamedContext(token.str);
+                        pa = ctx->add_match_text(token.str.c_str(), token.str.size());
+                    }
+                    else
+                    {
+                        pa = fp->add_match_text(token.str.c_str(), token.str.size());
+                    }
                     pattern_action(pa);
                     assert(tokens_[tokIdx_].tok == TOKEN_CLOSE_BRACE);
                 }

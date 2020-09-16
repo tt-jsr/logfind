@@ -37,7 +37,7 @@ namespace logfind
     bool ReadFile::open(const char * f)
     {
         filename_ = f;
-        if (strcmp(&filename_[filename_.size()-3], ".gz") == 0)
+        if (filename_.size() > 3 && strcmp(&filename_[filename_.size()-3], ".gz") == 0)
             pInput_ = new ZInput();
         else
             pInput_ = new TInput();
@@ -127,7 +127,7 @@ namespace logfind
 
     bool TInput::open(const char *fname)
     {
-        if (fname == nullptr || fname[0] == '\0')
+        if (strcmp(fname, "-") == 0)
         {
             fd_ = 0;
         }
@@ -167,14 +167,13 @@ namespace logfind
         strm_.avail_in = 0;
         strm_.next_in = Z_NULL;
 
-        //int ret = inflateInit(&strm_);
         int ret = inflateInit2(&strm_, 32+MAX_WBITS);
         if (ret != Z_OK)
         {
             return false;
         }
 
-        if (fname == nullptr || fname[0] == '\0')
+        if (strcmp(fname, "-") == 0)
         {
             fd_ = 0;
         }

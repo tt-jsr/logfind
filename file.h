@@ -22,7 +22,7 @@ namespace logfind
     {
     public:
         ~TInput();
-        // null for stdin
+        // '-' for stdin
         bool open(const char *);
         void close() override;
         int read(char *dest, uint64_t len) override;
@@ -36,11 +36,11 @@ namespace logfind
     public:
         ~ZInput();
         void close() override;
-        // null for stdin
+        // '-' for stdin
         bool open(const char *);
         int read(char *dest, uint64_t len) override;
     private:
-        static const int CHUNK = 1024*1024;
+        static const int CHUNK = 1024*256;
         int fd_;
         std::string filename_;
         z_stream strm_;
@@ -53,6 +53,7 @@ namespace logfind
         ReadFile();
         ~ReadFile();
 
+        // '-' for stdin
         bool open(const char *);
         char get();
         bool readLine(uint64_t lineoff, linebuf&);

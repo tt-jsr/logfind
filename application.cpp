@@ -18,14 +18,73 @@ namespace logfind
     {
         theApp = this;
         pCtx_.reset(new AhoFileContext());
+        pNamedPatternCtx_.reset(new AhoLineContext());
         exit_flag = false;
+    }
+
+    void Application::on_start()
+    {
+        int id = pNamedPatternCtx_->getPatternId("!program-start!");
+        if (id >= 0)
+        {
+            struct aho_match_t m;
+            m.id = id;
+            m.line_match_pos = 0; 
+            m.file_match_pos = 0;
+            m.lineno = 0;
+            m.line_position_in_file = 0;
+            m.len = 15;
+            pNamedPatternCtx_->on_match(&m);
+        }
     }
 
     void Application::on_exit()
     {
-        pCtx_->on_exit();
+        int id = pNamedPatternCtx_->getPatternId("!program-end!");
+        if (id >= 0)
+        {
+            struct aho_match_t m;
+            m.id = id;
+            m.line_match_pos = 0; 
+            m.file_match_pos = 0;
+            m.lineno = 0;
+            m.line_position_in_file = 0;
+            m.len = 13;
+            pNamedPatternCtx_->on_match(&m);
+        }
     }
 
+    void Application::on_file_start(const char *fname)
+    {
+        int id = pNamedPatternCtx_->getPatternId("!file-start!");
+        if (id >= 0)
+        {
+            struct aho_match_t m;
+            m.id = id;
+            m.line_match_pos = 0; 
+            m.file_match_pos = 0;
+            m.lineno = 0;
+            m.line_position_in_file = 0;
+            m.len = 15;
+            pNamedPatternCtx_->on_match(&m);
+        }
+    }
+
+    void Application::on_file_end(const char *fname)
+    {
+        int id = pNamedPatternCtx_->getPatternId("!file-end!");
+        if (id >= 0)
+        {
+            struct aho_match_t m;
+            m.id = id;
+            m.line_match_pos = 0; 
+            m.file_match_pos = 0;
+            m.lineno = 0;
+            m.line_position_in_file = 0;
+            m.len = 13;
+            pNamedPatternCtx_->on_match(&m);
+        }
+    }
     void Application::exit()
     {
         exit_flag = true;
@@ -62,17 +121,9 @@ namespace logfind
         return fd;
     }
 
-    void Application::NamedPatternAction(const char *name, PatternActionsPtr pa)
+    AhoLineContextPtr Application::GetNamedContext(const std::string& name)
     {
-        named_patterns_.emplace(name, pa);
-    }
-
-    PatternActionsPtr Application::GetNamedPattern(const char *name)
-    {
-        auto it = named_patterns_.find(name);
-        if (it != named_patterns_.end())
-            return it->second;
-        return PatternActionsPtr();
+        return pNamedPatternCtx_;
     }
 
     void Application::free(linebuf& lb)
