@@ -34,8 +34,26 @@ namespace logfind
         delete pInput_;
     }
 
+    void ReadFile::reset()
+    {
+        if (pInput_)
+        {
+            pInput_->close();
+        }
+        delete pInput_;
+        cache_.clear();
+        eof_ = false;
+        lineno_ = 0;
+        offset_ = 0;
+        buffer_ = nullptr;
+        lines_.clear();
+        filename_.clear();
+    }
+
     bool ReadFile::open(const char * f)
     {
+        reset();
+
         filename_ = f;
         if (filename_.size() > 3 && strcmp(&filename_[filename_.size()-3], ".gz") == 0)
             pInput_ = new ZInput();

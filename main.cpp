@@ -35,8 +35,11 @@ int main(int argc, char ** argv)
     std::string script;
     std::string infile;
     std::vector<std::string> nodash;
-    std::string fileprefix;
-    std::string timestamp;
+    std::string logname;
+    std::string timespec;
+    uint64_t timestamp(0);
+    bool before(false);
+    bool after(false);
 
     for (int a = 1; a < argc; ++a)
     {
@@ -56,27 +59,40 @@ int main(int argc, char ** argv)
             }
             script = argv[a];
         }
-        else if (strcmp (argv[a], "--prefix") == 0)
+        else if (strcmp (argv[a], "--logname") == 0)
         {
             ++a;
             if (a == argc)
             {
                 usage();
-                std::cout << "--prefix requires filename prefix" << std::endl;
+                std::cout << "--logname requires filename" << std::endl;
                 return 1;
             }
-            fileprefix = argv[a];
+            logname = argv[a];
         }
-        else if (strcmp (argv[a], "--time") == 0)
+        else if (strcmp (argv[a], "--before") == 0)
         {
             ++a;
             if (a == argc)
             {
                 usage();
-                std::cout << "--time requires TTLOG timestamp" << std::endl;
+                std::cout << "--before requires time spec" << std::endl;
                 return 1;
             }
-            timestamp = argv[a];
+            timespec = argv[a];
+            before = true;
+        }
+        else if (strcmp (argv[a], "--after") == 0)
+        {
+            ++a;
+            if (a == argc)
+            {
+                usage();
+                std::cout << "--after requires time spec" << std::endl;
+                return 1;
+            }
+            timespec = argv[a];
+            after = true;
         }
         else if (strcmp (argv[a], "--version") == 0 || strcmp(argv[a], "-v") == 0)
         {
@@ -99,9 +115,9 @@ int main(int argc, char ** argv)
         }
     }
 
-    if (!timestamp.empty() && fileprefix.empty())
+    if (!timespec.empty() && logname.empty())
     {
-        std::cerr << "--time requires --prefix" << std::endl;
+        std::cerr << "--before or --after requires --logname" << std::endl;
         return 1;
     }
 
@@ -135,23 +151,92 @@ int main(int argc, char ** argv)
     // Add any additional patterns that might have been on the command line
     AddPatterns(app, nodash);
 
-    std::map<uint64_t, logfind::FileInfo> files;
-    if (!fileprefix.empty())
+
+    std::vector<logfind::FileInfo> filesToProcess;
+    if (!logname.empty())
     {
-        logfind::GetFileInfos(fileprefix, files);
-        for (auto& pr : files)
+        if (before || after)
         {
-            std::cerr << pr.second.filepath << ":" << pr.second.sTimestamp << std::endl;
+            timestamp = logfind::TimespecToMicros(timespec);
+        }
+        else
+        {
+            before = true;
+            timestamp = logfind::GetCurrentTimeMicros();
+        }
+
+        std::map<uint64_t, logfind::FileInfo> files;
+
+        logfind::GetFileInfos(logname, files, false);
+    //for (auto& pr : files)
+    //{
+        //std::cerr << "===JSR fi: " << pr.second.filepath << std::endl;
+    //}
+
+        // search the logrotate time until our timestamp
+        // is later
+        uint64_t key;
+        for (auto it = files.begin(); it != files.end(); ++it)
+        {
+            if (it->second.rotatetime > timestamp)
+            {
+                key = it->first;
+                ++it;
+                if (it != files.end())
+                {
+                    // Lets make sure our timestamp isn't in the next file
+                    std::string s;
+                    uint64_t t = logfind::GetFirstLineTimestamp(it->second.filepath, s);
+                    if (t < timestamp)
+                        key = it->first;
+                }
+                break;
+            }
+        }
+        // we have our starting file, collect the files we need to process
+        if (after)
+        {
+            auto it = files.find(key);
+            while (it != files.end())
+            {
+                filesToProcess.push_back(it->second);
+                ++it;
+            }
+        }
+        else
+        {
+            auto it = files.find(key);
+            while (it != files.begin())
+            {
+                filesToProcess.push_back(it->second);
+                --it;
+            }
+            filesToProcess.push_back(files.begin()->second);
         }
     }
+    else
+    {
+        logfind::FileInfo fi;
+        fi.filepath = infile;
+        filesToProcess.push_back(fi);
+    }
+
+    //for (auto& fi : filesToProcess)
+    //{
+        //std::cerr << "===JSR " << fi.filepath << std::endl;
+    //}
 
     // let'r rip...
     app.on_start();
-    logfind::AhoFileContextPtr ptr = app.search();
-    if (ptr->find(infile.c_str()) == false)
+    for (auto& fi : filesToProcess)
     {
-        std::cerr << "Failed to open " << infile << std::endl;
-        return 1;
+        //std::cerr << fi.filepath << std::endl;
+        logfind::AhoFileContextPtr ptr = app.search();
+        if (ptr->find(fi.filepath.c_str()) == false)
+        {
+            std::cerr << "Failed to open " << fi.filepath << std::endl;
+            return 1;
+        }
     }
     app.on_exit();
     return 0;

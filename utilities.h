@@ -9,7 +9,8 @@
 
 namespace logfind
 {
-    uint64_t CurrentTime();
+    uint64_t GetCurrentTimeMicros();
+
     // Convert a TLOG timestamp to microseconds
     uint64_t TTLOG2micros(const char *p, uint32_t len);
 
@@ -26,8 +27,11 @@ namespace logfind
     // Get the list of log files in the /var/log/debesys and sub directories
     bool GetFileList(const std::string& logfilename, std::vector<std::string>&);
 
+    uint64_t TimespecToMicros(const std::string&);
+
     struct FileInfo
     {
+        FileInfo():timestamp(0), rotatetime(0) {}
         uint64_t timestamp;
         std::string sTimestamp;
         uint64_t rotatetime;
@@ -35,7 +39,7 @@ namespace logfind
     };
 
     // Get fileinfo for logfile name
-    void GetFileInfos(const std::string& logfilename, std::map<uint64_t, FileInfo>& out);
+    void GetFileInfos(const std::string& logfilename, std::map<uint64_t, FileInfo>& out, bool includeTimestamp);
 }
 
 #endif

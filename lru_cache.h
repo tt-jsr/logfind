@@ -24,6 +24,8 @@ namespace logfind
 
         // Add a buffer to the cache
         void add(Buffer *pBuf);
+
+        void clear();
     private:
         // Get the LRU buffer and remove from the cache
         Buffer * remove_lru_();

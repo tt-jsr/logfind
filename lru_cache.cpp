@@ -12,10 +12,17 @@ namespace logfind
 
     LRUCache::~LRUCache()
     {
+        clear();
+    }
+
+    void LRUCache::clear()
+    {
         for (auto& b : list_)
         {
             delete b;
         }
+        list_.clear();
+        map_.clear();
     }
 
     Buffer *LRUCache::get_lru()
@@ -38,8 +45,8 @@ namespace logfind
     {
         if (maxsize_ == map_.size())
         {
-            Buffer *pBuf = remove_lru_();
-            delete pBuf;
+            Buffer *p = remove_lru_();
+            delete p;
         }
         add_(pBuf);
     }

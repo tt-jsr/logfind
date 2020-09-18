@@ -64,6 +64,7 @@ namespace logfind
         int read_();
     private:
         Buffer *getBufferFromFileOffset(uint64_t offset);
+        void reset();
     private:
         Input *pInput_;
         uint64_t offset_;

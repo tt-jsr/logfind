@@ -15,6 +15,13 @@ namespace logfind
 {
     static const int MONTHSPERYEAR = 12;
 
+    uint64_t GetCurrentTimeMicros()
+    {
+        timespec ts;  
+        clock_gettime(CLOCK_REALTIME, &ts); 
+        return (ts.tv_sec * 1000000ULL) + (ts.tv_nsec / 1000ULL); 
+    }
+
     time_t my_timegm(struct tm * t)
     {
         register long year;
@@ -66,30 +73,44 @@ namespace logfind
 
     uint64_t TTLOG2micros(const char *time, uint32_t len)
     {
-        if (len < 26)
-            return 0;
         //2018-05-11 17:03:45.636730
         struct tm tm;
+        memset(&tm, 0, sizeof(tm));
+        tm.tm_mday = 1;
+
         char *p(nullptr);
+        int micros = 0;
         tm.tm_year = std::strtol(time, &p, 10) - 1900;
-        assert(*p == '-');
-        ++p;
-        tm.tm_mon = std::strtol(p, &p, 10) - 1;
-        assert(*p == '-');
-        ++p;
-        tm.tm_mday = std::strtol(p, &p, 10);
-        assert(*p == ' ');
-        ++p;
-        tm.tm_hour = std::strtol(p, &p, 10) - 1;
-        assert(*p == ':');
-        ++p;
-        tm.tm_min = std::strtol(p, &p, 10) - 1;
-        assert(*p == ':');
-        ++p;
-        tm.tm_sec = std::strtol(p, &p, 10) - 1;
-        assert(*p == '.');
-        ++p;
-        int micros = std::strtol(p, &p, 10);
+        if (*p == '-')
+        {
+            ++p;
+            tm.tm_mon = std::strtol(p, &p, 10) - 1;
+            if (*p == '-')
+            {
+                ++p;
+                tm.tm_mday = std::strtol(p, &p, 10);
+                if (*p == ' ')
+                {
+                    ++p;
+                    tm.tm_hour = std::strtol(p, &p, 10) - 1;
+                    if (*p == ':')
+                    {
+                        ++p;
+                        tm.tm_min = std::strtol(p, &p, 10) - 1;
+                        if (*p == ':')
+                        {
+                            ++p;
+                            tm.tm_sec = std::strtol(p, &p, 10) - 1;
+                            if (*p == '.')
+                            {
+                                ++p;
+                                micros = std::strtol(p, &p, 10);
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         time_t t = my_timegm(&tm);
         uint64_t r = (uint64_t)t * 1000000ULL;
@@ -142,7 +163,7 @@ namespace logfind
         return t;
     }
 
-    void GetFileInfos(const std::string& logfilename, std::map<uint64_t, FileInfo>& out)
+    void GetFileInfos(const std::string& logfilename, std::map<uint64_t, FileInfo>& out, bool includeTimestamp)
     {
         if (!logfilename.empty())
         {
@@ -153,9 +174,12 @@ namespace logfind
             {
                 FileInfo fi;
                 fi.rotatetime = TTLOGRotateTime(file);
-                fi.timestamp = GetFirstLineTimestamp(file, fi.sTimestamp);
+                if (includeTimestamp)
+                    fi.timestamp = GetFirstLineTimestamp(file, fi.sTimestamp);
                 fi.filepath = file;
-                out.emplace(fi.timestamp, fi);
+                if (fi.rotatetime == 0)
+                    fi.rotatetime = GetCurrentTimeMicros();
+                out.emplace(fi.rotatetime, fi);
             }
         }
     }
@@ -193,6 +217,40 @@ namespace logfind
             std::cerr << "ftw: returned " << r << std::endl;
         out = g_files;
         return true;
+    }
+
+    uint64_t TimespecToMicros(const std::string& spec)
+    {
+       uint64_t microsInDay = 86400ULL * 1000000ULL;
+       uint64_t microsInWeek = microsInDay * 7;
+       uint64_t microsInMonth = microsInDay * 30;
+
+       if (spec.find("day") != std::string::npos ||
+               spec.find("mon") != std::string::npos ||
+               spec.find("week") != std::string::npos)
+       {
+           size_t pos;
+           try
+           {
+               uint64_t now = GetCurrentTimeMicros();
+               int n = std::stol(spec, &pos, 10);
+               ++pos;
+               if (strncmp(&spec[pos], "day", 3) == 0)
+                   return now - (n * microsInDay);
+               else if (strncmp(&spec[pos], "week", 4) == 0)
+                   return now - (n * microsInWeek);
+               else if (strncmp(&spec[pos], "mon", 3) == 0)
+                   return now - (n * microsInMonth);
+               else
+                   return 0;
+           }
+           catch (std::exception&)
+           {
+               return 0;
+           }
+       }
+
+       return TTLOG2micros(spec.c_str(), spec.size());
     }
 }
 

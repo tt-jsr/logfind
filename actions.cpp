@@ -175,6 +175,11 @@ namespace logfind
                     strm << "${6}";
                     p += 7;
                 }
+                else if (strncmp(p, "${rotate-time}", 14) == 0)
+                {
+                    strm << "${7}";
+                    p += 14;
+                }
                 else
                 {
                     strm << *p;
@@ -272,6 +277,25 @@ namespace logfind
             int r = sprintf(buf, "%ld", t);
             if (r)
                 write (fd, buf, r);
+            p += 4;
+            return;
+        }
+        if (strncmp(p, "${7}", 4) == 0)     // ${rotate-time}
+        {
+            uint64_t ts = TTLOGRotateTime(theApp->filename());
+            if (ts)
+            {
+                time_t t = ts/1000000;
+                struct tm *tm = gmtime(&t);
+                char buf[64];
+                int r = sprintf(buf, "%d-%02d-%02d %02d:%02d:%02d", tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+                if (r)
+                    write (fd, buf, r);
+            }
+            else
+            {
+                write (fd, "n/a", 3);
+            }
             p += 4;
             return;
         }

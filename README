@@ -27,14 +27,14 @@ logfind pattern pattern ... file[.gz]                                    (1)
 
 logfind --script file file                                               (2)
 
-logfind --script file --prefix fileprefix [--after spec | --before spec] [pattern ...] file   (3)
+logfind --logname logname [--script file] [--after spec | --before spec] [pattern ...]   (3)
 
 (1) This is the simplist use of the program. It will search the given file
     for multiple patterns similar to grep -F. You can use '-' for stdin
 
 (2) This specifies a script file to read remenisent of sed(1) syntax. 
 
-(3) This form of the command will search all the log files in
+(3) Using --logname will search all the log files in
     /var/log/debesys and /var/log/debesys/oldlogs. 
     --before will locate the correct file and then search from this point
              to older.
@@ -50,29 +50,24 @@ logfind --script file --prefix fileprefix [--after spec | --before spec] [patter
         n:days                   # "4:days"              - n days ago
         n:weeks                  # "2:weeks"             - n weeks ago
 
+    --logname: The OC_cme.log is implied to be OC_cme.log*
+
 COMMAND LINE EXAMPLES
         logfile bb77a423-f475-434b-a336-3bd09a32c464 OC_cme.log
            Search for the order in the givem file
 
-        logfind --prefix OC_cme.log bb77a423-f475-434b-a336-3bd09a32c464
+        logfind --logname OC_cme.log bb77a423-f475-434b-a336-3bd09a32c464
            Search for the order starting at the latest logfile and search through
            each older log in order
 
-        logfind --prefix OC_cme.log --before 2:weeks bb77a423-f475-434b-a336-3bd09a32c464 "S T A R T"
-           Search for the order starting at a file from 2 weeks ago and search through
+        logfind --logname OC_cme.log --before "2020-09-10 03:22:00" bb77a423-f475-434b-a336-3bd09a32c464 "S T A R T"
+           Search for the order starting at the containing the given timestamp and search
            each older log in order. Also print any OC starts that may have happened
 
-        logfind --prefix OC_cme.log --after 2:weeks bb77a423-f475-434b-a336-3bd09a32c464 "S T A R T"
-           Search for the order starting at a file from 2 weeks ago and search through
-           each newer log in order. Also print any OC starts that may have happened
+        logfind --logname OC_cme.log --after "2020-09-10 03:22:00" bb77a423-f475-434b-a336-3bd09a32c464 "S T A R T"
+           Search for the order starting at the containing the given timestamp and search
+           each older log in order. Also print any OC starts that may have happened
 
-        logfind --prefix OC_cme.log --time "2020-05-04 18:00:00" "find this"
-
-        This will automatically locate the correct files and search them for
-        the text "find this" from oldest to newest.
-
-        --prefix: The OC_cme.log is implied to be OC_cme.log*
-        --time: TTLOG format for the time, e.g. "2020-05-04 17:30:00"
 
 
                         SCRIPT FILE
@@ -84,8 +79,6 @@ For each matching line, sub-patterns can be defined to perform a line search wit
 a set of associated actions.
 
 A pattern is a fixed string, regex is not supported.
-
-Skip to EXAMPLES if this is too much to read.
 
 SYNTAX
     The basic syntax is pretty simple.
@@ -102,83 +95,92 @@ ACTIONS
     The following actions are supported for each pattern match. Additional
     actions can be easily defined and implemented for customizing.
 
-    print
-        Print the current matched line to the current output.
+    OUTPUT ACTIONS
+        file "filename" [--append]
+        file --stdout
+        file --stderr
+            The output of actions following this action will be sent to "filename". It is possible to 
+            send output to multiple files, or have each pattern match sent to separate files
+            if desired.
 
-    print "fmt"
-        Print the matching line to the current output.
-        "fmt" is a quoted string containing the text to be printed. The
-        following format variables are defined:
-            ${lineno}   Line number of the match
-            ${offset}   File offset of the line where the match was found
-            ${match}    Print the matched text.
-            ${match+n}  Print match text + n addional characters
-            ${match/c}  Print match text until the given delimiter 'c' is seen
-            ${line}     Print the whole line
-            ${line:m,}  Print the line, from m to end of line. If m < 0, the starting
-                        position is m characters from the end.
-            ${line:,n}  Print the line, from begining of line to n. If n < 0, the 
-                        ending position is n characters from the end of the line.
-            ${line:m,n} Print the line columns m through n. Negative numbers apply as above.
-            ${time}     If the match line contains a timestamp, print it as the number
-                        of microseconds. The line's timestamp must be in TTLOG format
-            ${filename} Print the current filename
+        print
+            Print the current matched line to the current output.
 
-        Note: If a "fmt" is specified, a NL is not automatically added. You must supply
-              the \n if you want a new line.
+        print "fmt"
+            Print the matching line to the current output.
+            "fmt" is a quoted string containing the text to be printed. The
+            following format variables are defined:
+                ${lineno}   Line number of the match
+                ${offset}   File offset of the line where the match was found
+                ${match}    Print the matched text.
+                ${match+n}  Print match text + n addional characters
+                ${match/c}  Print match text until the given delimiter 'c' is seen
+                ${line}     Print the whole line
+                ${line:m,}  Print the line, from m to end of line. If m < 0, the starting
+                            position is m characters from the end.
+                ${line:,n}  Print the line, from begining of line to n. If n < 0, the 
+                            ending position is n characters from the end of the line.
+                ${line:m,n} Print the line columns m through n. Negative numbers apply as above.
+                ${time}     If the match line contains a timestamp, print it as the number
+                            of microseconds. The line's timestamp must be in TTLOG format
+                ${rotate-time} If the file has been rotated, print time time of rotation
+                ${filename} Print the current filename
 
-    count "fmt"
-        Count the number of matches of the pattern. "fmt" will be printed when the 
-        program exits. Format must contain a ${count} specifier to print the count, 
-        such as "Number of matches: ${count}\n"
+            Note: If a "fmt" is specified, a NL is not automatically added. You must supply
+                  the \n if you want a new line.
 
-    max-count n [--exit]
-        Perform the actions n number of times. If --exit is specified, the program will
-        exit when the count is reached, otherwise any further matches of this pattern 
-        will be ignored.
+        max-count n [--exit]
+            Perform the actions n number of times. If --exit is specified, the program will
+            exit when the count is reached, otherwise any further matches of this pattern 
+            will be ignored.
 
-    file "filename" [--append]
-    file --stdout
-    file --stderr
-        The output of actions following this action will be sent to "filename". It is possible to 
-        send output to multiple files, or have each pattern match sent to separate files
-        if desired.
+        pipe "command-line"
+            The output of actions following this action will be sent to "program". It is possible to 
+            send the output to multiple programs, or have each pattern match sent to separate programs
+            if desired.
 
-    pipe "command-line"
-        The output of actions following this action will be sent to "program". It is possible to 
-        send the output to multiple programs, or have each pattern match sent to separate programs
-        if desired.
+            This is not yet implemented. To be determined if this is useful or not.
 
-        This is not yet implemented. To be determined if this is useful or not.
+        after n [--fmt "fmt"]
+            Print n lines after the match. 
+            --fmt: If present, will use the print format. For the purposes of the format, the entire 
+                   line is considered a match.
 
-    interval "fmt"
-        Print the time since the last pattern match. The matched patterns must contain a TTLOG
-        timestamp. The output will print the number of days, hours, minutes, seconds, and microseconds.
-        "fmt" will be used to print the time. Format must contain a ${time} specifier to 
-        print the time, such as "Elapsed time since last pattern: ${time}\n"
+            This is not yet implemented.
 
-    after n [--fmt "fmt"]
-        Print n lines after the match. 
-        --fmt: If present, will use the print format. For the purposes of the format, the entire 
-               line is considered a match.
+        before n [--fmt "fmt"]
+            Print n lines before the match.
+            --fmt: If present, will use the print format. For the purposes of the format, the entire 
+                   line is considered a match.
 
-        This is not yet implemented.
+            This is not yet implemented.
 
-    before n [--fmt "fmt"]
-        Print n lines before the match.
-        --fmt: If present, will use the print format. For the purposes of the format, the entire 
-               line is considered a match.
+    ANALYSIS ACTIONS
 
-        This is not yet implemented.
+        count "fmt"
+            Count the number of matches of the pattern. "fmt" will be printed when the 
+            program exits. Format must contain a ${count} specifier to print the count, 
+            such as "Number of matches: ${count}\n"
 
-    exit
-        Exit the program
+        interval "fmt"
+            Print the time since the last pattern match. The matched patterns must contain a TTLOG
+            timestamp. The output will print the number of days, hours, minutes, seconds, and microseconds.
+            "fmt" will be used to print the time. Format must contain a ${time} specifier to 
+            print the time, such as "Elapsed time since last cxlrpl: ${time}\n"
 
-    /pattern/ {
-        ...
-    }
-        Search for a pattern in the currently matched line. Each sub pattern
-        can define a set of actions to be executed.
+            output:
+                Elapsed time since last cxlrpl: 0d 0h 0m 13s 1220us
+
+    MISC ACTIONS
+
+        exit
+            Exit the program
+
+        /pattern/ {
+            ...
+        }
+            Search for a pattern in the currently matched line. Each sub pattern
+            can define a set of actions to be executed.
 
 SPECIAL PATTERNS
     There are a number of special patterns defined
