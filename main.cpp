@@ -151,7 +151,6 @@ int main(int argc, char ** argv)
     // Add any additional patterns that might have been on the command line
     AddPatterns(app, nodash);
 
-
     std::vector<logfind::FileInfo> filesToProcess;
     if (!logname.empty())
     {
@@ -230,7 +229,7 @@ int main(int argc, char ** argv)
     app.on_start();
     for (auto& fi : filesToProcess)
     {
-        //std::cerr << fi.filepath << std::endl;
+        std::cerr << fi.filepath << std::endl;
         logfind::AhoFileContextPtr ptr = app.search();
         if (ptr->find(fi.filepath.c_str()) == false)
         {

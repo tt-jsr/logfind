@@ -1,0 +1,75 @@
+/S T A R T I N G/ {
+    print
+}
+
+/S H U T D O W N/ {
+    print
+}
+
+/| LEADER |/ {
+    print
+}
+
+/| build/ {
+    print
+}
+
+/| CHEF/ {
+    print
+}
+
+/| TZ:/ {
+    print
+}
+/| ONEOFF/ {
+    print
+}
+
+/| CONFIG |/ {
+    print
+}
+
+/Exchange started in up/ {
+    print
+}
+
+/|  Exchange is up/ {
+    print
+}
+
+/| Exchange is down/ {
+    print
+}
+
+/orderserver is ready/ {
+    print
+}
+
+/Completing startup/ {
+    print
+}
+
+/Startup complete/ {
+    print
+}
+
+/joining cluster/ {
+    print
+}
+
+/left cluster/ {
+    print
+}
+
+/| ZOOKEEPER/ {
+    print
+}
+
+/Initializing Darwin ServiceInstanceImpl/ {
+    print
+}
+
+/| ERROR |/ {
+    print
+}
+
