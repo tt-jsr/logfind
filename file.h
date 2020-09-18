@@ -1,6 +1,6 @@
 #ifndef FILE_H_
 #define FILE_H_
-
+#include <unordered_map>
 #include "zlib.h"
 
 namespace logfind

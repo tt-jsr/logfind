@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <iostream>
+#include <map>
 #include "lru_cache.h"
 #include "application.h"
 #include "aho_context.h"
 #include "pattern_actions.h"
 #include "actions.h"
 #include "parse.h"
+#include "utilities.h"
 
 static const char *version = ".9";
 
@@ -33,6 +35,8 @@ int main(int argc, char ** argv)
     std::string script;
     std::string infile;
     std::vector<std::string> nodash;
+    std::string fileprefix;
+    std::string timestamp;
 
     for (int a = 1; a < argc; ++a)
     {
@@ -52,29 +56,27 @@ int main(int argc, char ** argv)
             }
             script = argv[a];
         }
-        else if (strcmp (argv[a], "--infile") == 0)
+        else if (strcmp (argv[a], "--prefix") == 0)
         {
             ++a;
             if (a == argc)
             {
                 usage();
-                std::cout << "--infile requires filename" << std::endl;
+                std::cout << "--prefix requires filename prefix" << std::endl;
                 return 1;
             }
-            infile = argv[a];
+            fileprefix = argv[a];
         }
-
-        else if (strcmp (argv[a], "--pattern") == 0 || strcmp(argv[a], "-e") == 0)
+        else if (strcmp (argv[a], "--time") == 0)
         {
             ++a;
             if (a == argc)
             {
                 usage();
-                std::cout << "--pattern requires an argument" << std::endl;
+                std::cout << "--time requires TTLOG timestamp" << std::endl;
                 return 1;
             }
-            std::cout << "adding " << argv[a] << std::endl;
-            nodash.push_back(std::string(argv[a]));
+            timestamp = argv[a];
         }
         else if (strcmp (argv[a], "--version") == 0 || strcmp(argv[a], "-v") == 0)
         {
@@ -97,7 +99,29 @@ int main(int argc, char ** argv)
         }
     }
 
+    if (!timestamp.empty() && fileprefix.empty())
+    {
+        std::cerr << "--time requires --prefix" << std::endl;
+        return 1;
+    }
+
+    if (nodash.size() == 1)
+    {
+        infile = nodash[0];
+    }
+    if (nodash.size() > 1)
+    {
+        infile = nodash.back();
+        nodash.pop_back();
+    }
+
+    if (infile.empty())
+        infile = "-";
+
+    // Instantiate the app
     logfind::Application app;
+
+    // Parse the script, if any
     if (!script.empty())
     {
         logfind::Parse parse;
@@ -108,29 +132,20 @@ int main(int argc, char ** argv)
         }
     }
 
-    if (nodash.size() == 1)
+    // Add any additional patterns that might have been on the command line
+    AddPatterns(app, nodash);
+
+    std::map<uint64_t, logfind::FileInfo> files;
+    if (!fileprefix.empty())
     {
-        // we have a pattern and are going to read from stdin/infile
-        AddPatterns(app, nodash);
-    }
-    if (nodash.size() > 1)
-    {
-        if (!infile.empty())
+        logfind::GetFileInfos(fileprefix, files);
+        for (auto& pr : files)
         {
-            // We have specified the input file, so everthing is a pattern
-            AddPatterns(app, nodash);
-        }
-        else
-        {
-            // We haven't specified the infile, so the last item is the file
-            infile = nodash.back();
-            nodash.pop_back();
-            AddPatterns(app, nodash);
+            std::cerr << pr.second.filepath << ":" << pr.second.sTimestamp << std::endl;
         }
     }
 
-    if (infile.empty())
-        infile = "-";
+    // let'r rip...
     app.on_start();
     logfind::AhoFileContextPtr ptr = app.search();
     if (ptr->find(infile.c_str()) == false)
