@@ -14,6 +14,12 @@
 namespace logfind
 {
     static const int MONTHSPERYEAR = 12;
+    static const uint64_t MICROS_IN_SEC = 1000000ULL;
+    static const uint64_t MICROS_IN_MIN = MICROS_IN_SEC * 60;
+    static const uint64_t MICROS_IN_HOUR = MICROS_IN_MIN * 60;
+    static const uint64_t MICROS_IN_DAY = MICROS_IN_HOUR * 24;
+    static const uint64_t MICROS_IN_MONTH = MICROS_IN_HOUR * 30;
+    static const uint64_t MICROS_IN_YEAR = MICROS_IN_DAY * 365;
 
     uint64_t GetCurrentTimeMicros()
     {
@@ -50,10 +56,6 @@ namespace logfind
         return (result);
     }
 
-    static const uint64_t MICROS_IN_DAY = 1000000ULL * 60ULL * 60ULL * 24ULL;
-    static const uint64_t MICROS_IN_HOUR = 1000000ULL * 60ULL * 60ULL;
-    static const uint64_t MICROS_IN_MIN = 1000000ULL * 60ULL;
-    static const uint64_t MICROS_IN_SEC = 1000000ULL;
 
     bool Micros2String(uint64_t micros, std::string& out)
     {
@@ -69,6 +71,69 @@ namespace logfind
         char buf[64];
         sprintf (buf, "%ldd %ldh %ldm %lds %ldus", days, hours, min, secs, micros);
         out = buf;
+    }
+
+    void ltime(uint64_t time, int *year, int *month, int *day, int *hours, int *min, int *secs, int *micros)
+    {
+        time_t t = time/1000000;
+        int us = time - (t * 1000000);
+        struct tm *tm = gmtime(&t);
+        if (year)
+            *year = tm->tm_year +1900;
+        if (month)
+            *month = tm->tm_mon + 1;
+        if (day)
+            *day = tm->tm_mday;
+        if (min)
+            *min = tm->tm_min;
+        if (secs)
+            *secs = tm->tm_sec;
+        if (micros)
+            *micros = us;
+    }
+
+    void duration(uint64_t time, int *year, int *month, int *day, int *hours, int *min, int *secs, int *micros)
+    {
+        if (year)
+        {
+            int y = time/MICROS_IN_YEAR;
+            time -= y * MICROS_IN_YEAR;
+            *year = y;
+        }
+        if (month)
+        {
+            int mon = time/MICROS_IN_MONTH;
+            time -= mon * MICROS_IN_MONTH;
+            *month = mon;
+        }
+        if(day)
+        {
+            int d = time/MICROS_IN_DAY;
+            time -= d * MICROS_IN_DAY;
+            *day = d;
+        }
+        if (hours)
+        {
+            int h = time/MICROS_IN_HOUR;
+            time -= h * MICROS_IN_HOUR;
+            *hours = h;
+        }
+        if (min)
+        {
+            int m = time/MICROS_IN_MIN;
+            time -= m * MICROS_IN_MIN;
+            *min = m;
+        }
+        if (secs)
+        {
+            int s = time/MICROS_IN_SEC;
+            time -= s * MICROS_IN_SEC;
+            *secs = s;
+        }
+        if (micros)
+        {
+            *micros = time;
+        }
     }
 
     uint64_t TTLOG2micros(const char *time, uint32_t len)
@@ -116,6 +181,19 @@ namespace logfind
         uint64_t r = (uint64_t)t * 1000000ULL;
         r += micros;
         return r;
+    }
+
+    std::string micros2TTLOG(uint64_t micros, bool bPrintMicro)
+    {
+        time_t t = micros/1000000;
+        micros = micros - (t*1000000);
+        struct tm *tm = gmtime(&t);
+        char buf[64];
+        if (bPrintMicro)
+            sprintf(buf, "%02d-%02d-%02d %02d:%02d:%02d.%04d", tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec, micros);
+        else
+            sprintf(buf, "%02d-%02d-%02d %02d:%02d:%02d", tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+        return std::string(buf);
     }
 
     int get_digits(const char *&p, int count)
@@ -167,26 +245,24 @@ namespace logfind
     {
         if (!logfilename.empty())
         {
-            std::vector<std::string> filelist;
+            std::vector<FileInfo> filelist;
             if (GetFileList(logfilename, filelist) == false)
                 std::cerr << "GetFileInfos: Unable to find logfilename '" << logfilename << std::endl;
-            for (const std::string& file : filelist)
+            for (FileInfo& fi : filelist)
             {
-                FileInfo fi;
-                fi.rotatetime = TTLOGRotateTime(file);
                 if (includeTimestamp)
-                    fi.timestamp = GetFirstLineTimestamp(file, fi.sTimestamp);
-                fi.filepath = file;
+                    fi.timestamp = GetFirstLineTimestamp(fi.filepath, fi.sTimestamp);
+                fi.key = fi.rotatetime;
                 if (fi.rotatetime == 0)
-                    fi.rotatetime = GetCurrentTimeMicros();
-                out.emplace(fi.rotatetime, fi);
+                    fi.key = GetCurrentTimeMicros();
+                out.emplace(fi.key, fi);
             }
         }
     }
 
 
     std::string g_logfilename;
-    std::vector<std::string> g_files;
+    std::vector<FileInfo> g_files;
 
     int ftw_cb(const char *fpath, const struct stat *sb, int typeflag)
     {
@@ -203,12 +279,17 @@ namespace logfind
         }
         if (strncmp(s, g_logfilename.c_str(), g_logfilename.size()) == 0)
         {
-            g_files.push_back(fpath);
+            FileInfo fi;
+            fi.filepath = fpath;
+            fi.size = sb->st_size;
+            fi.rotatetime = TTLOGRotateTime(fi.filepath);
+            fi.srotatetime = micros2TTLOG(fi.rotatetime, false);
+            g_files.push_back(fi);
         }
         return 0;
     }
 
-    bool GetFileList(const std::string& logfilename, std::vector<std::string>& out)
+    bool GetFileList(const std::string& logfilename, std::vector<FileInfo>& out)
     {
         g_logfilename = logfilename;
         g_files.clear();

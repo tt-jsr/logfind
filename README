@@ -1,7 +1,7 @@
 Logfind
 
 
-                        OVERVIEW
+                             OVERVIEW
 
 Logfind provides similar functionality to grep -F (aka fgrep) and sed(1) programs.
 This was written to try to simplify searching through TT log files. It is capable of
@@ -13,7 +13,7 @@ correct file to start at and begin searching through the files from the given ti
 through newer files, or the given time through older files.
 
 If using a script, you can define actions to be performed on each match. The most 
-useful is the 'print' action, with a multitude of print options. There are some
+useful is the 'print' action, with a multitude of print options. There are also some
 anaylsys actions implemented. You can also output line matches to any number of 
 output files to separate them if wanted.
 
@@ -21,13 +21,15 @@ Custom actions can be easily implemented for customizing. For instance, we could
 create an action to pretty print an ER, or maybe convert it to json.
 
 
-                        SYNOPSYS
+                             SYNOPSYS
 
 logfind pattern pattern ... file[.gz]                                    (1)
 
-logfind --script file file                                               (2)
+logfind --script file infile                                               (2)
 
 logfind --logname logname [--script file] [--after spec | --before spec] [pattern ...]   (3)
+
+logfind --logname logname --list                                         (4)
 
 (1) This is the simplist use of the program. It will search the given file
     for multiple patterns similar to grep -F. You can use '-' for stdin
@@ -52,6 +54,9 @@ logfind --logname logname [--script file] [--after spec | --before spec] [patter
 
     --logname: The OC_cme.log is implied to be OC_cme.log*
 
+(4) This is a helpful little command that will display the starting and ending times
+    of a logfile, as well as the size and approx decompressed size.
+
 COMMAND LINE EXAMPLES
         logfile bb77a423-f475-434b-a336-3bd09a32c464 OC_cme.log
            Search for the order in the givem file
@@ -66,11 +71,11 @@ COMMAND LINE EXAMPLES
 
         logfind --logname OC_cme.log --after "2020-09-10 03:22:00" bb77a423-f475-434b-a336-3bd09a32c464 "S T A R T"
            Search for the order starting at the containing the given timestamp and search
-           each older log in order. Also print any OC starts that may have happened
+           each newer log in order. Also print any OC starts that may have happened
 
 
 
-                        SCRIPT FILE
+                             SCRIPT FILE
 
 A script file contains multiple patterns to search for. For each pattern, a set
 of actions can be specified to be executed against the matching line.
@@ -123,7 +128,7 @@ ACTIONS
                 ${line:m,n} Print the line columns m through n. Negative numbers apply as above.
                 ${time}     If the match line contains a timestamp, print it as the number
                             of microseconds. The line's timestamp must be in TTLOG format
-                ${rotate-time} If the file has been rotated, print time time of rotation
+                ${rotate-time} If the file has been rotated, print time of rotation in TTLOG format
                 ${filename} Print the current filename
 
             Note: If a "fmt" is specified, a NL is not automatically added. You must supply

@@ -13,9 +13,9 @@ static const char *version = ".9";
 
 void usage()
 {
-    std::cout << "usage: logfind [--script file] [--infile file] [--pattern]" << std::endl;
-    std::cout << "       logfind pattern pattern ... file" << std::endl;
-    std::cout << "               file can be '-' for stdin" << std::endl;
+    std::cout << "usage: logfind [--script file] pattern ... searchFile" << std::endl;
+    std::cout << "       logfind [--script file][--logname name][--after spec][--before spec] [pattern pattern...] file" << std::endl;
+    std::cout << "       logfind --logname name --list" << std::endl;
     std::cout << "       logfind --version" << std::endl;
 }
 
@@ -40,6 +40,7 @@ int main(int argc, char ** argv)
     uint64_t timestamp(0);
     bool before(false);
     bool after(false);
+    bool list(false);
 
     for (int a = 1; a < argc; ++a)
     {
@@ -94,6 +95,10 @@ int main(int argc, char ** argv)
             timespec = argv[a];
             after = true;
         }
+        else if (strcmp (argv[a], "--list") == 0)
+        {
+            list = true;
+        }
         else if (strcmp (argv[a], "--version") == 0 || strcmp(argv[a], "-v") == 0)
         {
             std::cerr << version << std::endl;
@@ -113,6 +118,39 @@ int main(int argc, char ** argv)
         {
             nodash.push_back(std::string(argv[a]));
         }
+    }
+
+    if (list)
+    {
+        if (logname.empty())
+        {
+            std::cerr << "--list requires --logname" << std::endl;
+            return 1;
+        }
+        std::map<uint64_t, logfind::FileInfo> files;
+
+        logfind::GetFileInfos(logname, files, true);
+        for (auto& pr : files)
+        {
+            const logfind::FileInfo& fi = pr.second;
+            if (fi.rotatetime)
+            {
+                uint64_t diff = fi.rotatetime - fi.timestamp;
+                int hours, min, secs;
+                logfind::duration(diff, nullptr, nullptr, nullptr, &hours, &min, &secs, nullptr);
+
+                std::cout << fi.filepath << std::endl << "     " << fi.sTimestamp << "  ->  " << fi.srotatetime;
+                if (fi.filepath.find(".gz") != std::string::npos)
+                    std::cout << " (" << hours << "h " << min << "m " << secs << "s) " << fi.size/1000000 << "/" << (fi.size*20)/1000000 << " MB" << std::endl;
+                else
+                    std::cout << " (" << hours << "h " << min << "m " << secs << "s) " << fi.size/1000000 << " MB" << std::endl;
+            }
+            else
+            {
+                std::cout << fi.filepath << std::endl << "     " << fi.sTimestamp << " " << fi.size/1000000 << " MB" << std::endl;
+            }
+        }
+        return 0;
     }
 
     if (!timespec.empty() && logname.empty())
@@ -167,17 +205,13 @@ int main(int argc, char ** argv)
         std::map<uint64_t, logfind::FileInfo> files;
 
         logfind::GetFileInfos(logname, files, false);
-    //for (auto& pr : files)
-    //{
-        //std::cerr << "===JSR fi: " << pr.second.filepath << std::endl;
-    //}
 
         // search the logrotate time until our timestamp
         // is later
         uint64_t key;
         for (auto it = files.begin(); it != files.end(); ++it)
         {
-            if (it->second.rotatetime > timestamp)
+            if (it->second.key > timestamp)
             {
                 key = it->first;
                 ++it;

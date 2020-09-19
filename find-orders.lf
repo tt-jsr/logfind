@@ -1,0 +1,30 @@
+
+/!file-start!/ {
+    print "File start: ${filename} (${rotate-time})\n"
+}
+
+/S T A R T/ {
+    print
+}
+
+# This is a test
+/S H U T D O W N/ {
+    print
+}
+
+/7dfd611d-1d25-4c4f-af7b-5b93907a2fdc/ {
+    /EXEC_TYPE_NEW/ {
+        print "NOS: ${lineno} "
+    }
+    /EXEC_TYPE_REPLACE/ {
+        print "REPLACE: ${lineno} "
+    }
+    /EXEC_TYPE_TRADE/ {
+        print "TRADE: ${lineno} "
+    }
+    /EXEC_TYPE_CANCEL/ {
+        print "CANCEL: ${lineno} "
+    }
+    print "${line:,150}\n"
+}
+
