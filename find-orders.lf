@@ -13,10 +13,14 @@
 }
 
 /7dfd611d-1d25-4c4f-af7b-5b93907a2fdc/ {
+    file --stderr
+    print "Match found\n"
+    file --stdout
     /EXEC_TYPE_NEW/ {
         print "NOS: ${lineno} "
     }
     /EXEC_TYPE_REPLACE/ {
+        interval "Cxlrpl interval ${TIME}\n"
         print "REPLACE: ${lineno} "
     }
     /EXEC_TYPE_TRADE/ {
@@ -25,6 +29,6 @@
     /EXEC_TYPE_CANCEL/ {
         print "CANCEL: ${lineno} "
     }
-    print "${line:,150}\n"
+    print 
 }
 

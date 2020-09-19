@@ -495,7 +495,7 @@ namespace logfind
         {
             if (s == "--stdout")
                 stdout_ = true;
-            else if (s == "stderr")
+            else if (s == "--stderr")
                 stderr_ = true;
             else if (s == "--append")
                 append_ = true;
@@ -519,9 +519,9 @@ namespace logfind
     void File::on_command(int fd, uint32_t lineno, linebuf& matchingline)
     {
         if (stdout_)
-            pattern_actions_->fd_ = 0;
-        else if (stderr_)
             pattern_actions_->fd_ = 1;
+        else if (stderr_)
+            pattern_actions_->fd_ = 2;
         else
             pattern_actions_->fd_ = theApp->file(name_.c_str(), append_);
     }
