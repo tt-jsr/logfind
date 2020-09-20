@@ -9,6 +9,7 @@
 #include "parse.h"
 #include "utilities.h"
 #include "list_cmd.h"
+#include "cat_cmd.h"
 
 static const char *version = ".9";
 
@@ -40,6 +41,9 @@ int main(int argc, char ** argv)
     std::string before;
     std::string after;
     std::string locate;
+    std::string cat;
+    std::string duration;
+    std::string split;
     uint64_t timestamp(0);
     bool list(false);
 
@@ -71,6 +75,39 @@ int main(int argc, char ** argv)
                 return 1;
             }
             logname = argv[a];
+        }
+        else if (strcmp (argv[a], "--cat") == 0)
+        {
+            ++a;
+            if (a == argc)
+            {
+                usage();
+                std::cout << "--cat requires filename" << std::endl;
+                return 1;
+            }
+            cat = argv[a];
+        }
+        else if (strcmp (argv[a], "--duration") == 0)
+        {
+            ++a;
+            if (a == argc)
+            {
+                usage();
+                std::cout << "--duration requires filename" << std::endl;
+                return 1;
+            }
+            duration = argv[a];
+        }
+        else if (strcmp (argv[a], "--split") == 0)
+        {
+            ++a;
+            if (a == argc)
+            {
+                usage();
+                std::cout << "--split requires filename" << std::endl;
+                return 1;
+            }
+            split = argv[a];
         }
         else if (strcmp (argv[a], "--before") == 0)
         {
@@ -138,6 +175,16 @@ int main(int argc, char ** argv)
             return 1;
         }
         logfind::list_cmd(logname, locate);
+        return 0;
+    }
+
+    if (!cat.empty())
+    {
+        if (logfind::cat_cmd(logname, cat, duration, split) == false)
+        {
+            std::cerr << "--cat, invalid arguments" << std::endl;
+            return 1;
+        }
         return 0;
     }
 

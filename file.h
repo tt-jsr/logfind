@@ -18,6 +18,7 @@ namespace logfind
         virtual int read(char *dest, uint64_t len) = 0;
     };
 
+    // Test input
     class TInput : public Input
     {
     public:
@@ -31,6 +32,7 @@ namespace logfind
         std::string filename_;
     };
 
+    // compressed .gz inout
     class ZInput : public Input
     {
     public:

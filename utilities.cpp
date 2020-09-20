@@ -340,6 +340,17 @@ namespace logfind
 
         GetFileInfos(logname, files, false);
 
+        if (timestamp == 0)
+        {
+            auto it = files.begin();
+            while (it != files.end())
+            {
+                out.push_back(it->second);
+                ++it;
+            }
+            return;
+        }
+
         // search the logrotate time until our timestamp
         // is later
         uint64_t key;

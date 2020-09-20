@@ -14,13 +14,13 @@ through newer files, or the given time through older files.
 
 If using a script, you can define actions to be performed on each match. The most 
 useful is the 'print' action, with a multitude of print options. There are also some
-anaylsys actions implemented. You can also output line matches to any number of 
+analysis actions implemented. You can also output line matches to any number of 
 output files to separate them if wanted.
 
 In addition to searching, there are options (--cat) to send to stdout a time range of
 the logs. You can also split a time range into multiple files.
 
-Logfind is extensible in that additional actions can be easily implemented for customizing. 
+Logfind is also extensible in that additional actions can be easily implemented for customizing. 
 For instance, we could create an action to pretty print an ER, or maybe convert it to json.
 
 
@@ -195,8 +195,8 @@ ACTIONS
         interval "fmt"
             Print the time since the last pattern match. The matched patterns must contain a TTLOG
             timestamp. The output will print the number of days, hours, minutes, seconds, and microseconds.
-            "fmt" will be used to print the time. Format must contain a ${time} specifier to 
-            print the time, such as "Elapsed time since last cxlrpl: ${time}\n"
+            Format must contain a ${time} specifier to print the time, such as 
+            "Elapsed time since last cxlrpl: ${time}\n"
 
             output:
                 Elapsed time since last cxlrpl: 0d 0h 0m 13s 1220us
@@ -237,7 +237,7 @@ PERFORMANCE
     only once, therefore it will run in linear time with the size of the file. The implementation
     also does not break the input into lines but rather the pattern search is run against 
     the entire input, only when a match is found are the bounding line endings located. The
-    input is backed by in LRU cache of 1MB pages with read ahead to support the 'before' and 
+    input is backed by an LRU cache of 1MB pages with read ahead to support the 'before' and 
     'after' actions.
 
     Each sub-pattern is run using a separate context for the algorithim. Again, running multiple
