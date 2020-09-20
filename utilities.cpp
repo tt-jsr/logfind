@@ -157,15 +157,15 @@ namespace logfind
                 if (*p == ' ')
                 {
                     ++p;
-                    tm.tm_hour = std::strtol(p, &p, 10) - 1;
+                    tm.tm_hour = std::strtol(p, &p, 10);
                     if (*p == ':')
                     {
                         ++p;
-                        tm.tm_min = std::strtol(p, &p, 10) - 1;
+                        tm.tm_min = std::strtol(p, &p, 10);
                         if (*p == ':')
                         {
                             ++p;
-                            tm.tm_sec = std::strtol(p, &p, 10) - 1;
+                            tm.tm_sec = std::strtol(p, &p, 10);
                             if (*p == '.')
                             {
                                 ++p;
@@ -332,6 +332,54 @@ namespace logfind
        }
 
        return TTLOG2micros(spec.c_str(), spec.size());
+    }
+
+    void GetFilesToProcess(const std::string& logname, uint64_t timestamp, bool before, std::vector<FileInfo>& out)
+    {
+        std::map<uint64_t, FileInfo> files;
+
+        GetFileInfos(logname, files, false);
+
+        // search the logrotate time until our timestamp
+        // is later
+        uint64_t key;
+        for (auto it = files.begin(); it != files.end(); ++it)
+        {
+            if (it->second.key > timestamp)
+            {
+                key = it->first;
+                ++it;
+                if (it != files.end())
+                {
+                    // Lets make sure our timestamp isn't in the next file
+                    std::string s;
+                    uint64_t t = GetFirstLineTimestamp(it->second.filepath, s);
+                    if (t < timestamp)
+                        key = it->first;
+                }
+                break;
+            }
+        }
+        // we have our starting file, collect the files we need to process
+        if (!before)
+        {
+            auto it = files.find(key);
+            while (it != files.end())
+            {
+                out.push_back(it->second);
+                ++it;
+            }
+        }
+        else
+        {
+            auto it = files.find(key);
+            while (it != files.begin())
+            {
+                out.push_back(it->second);
+                --it;
+            }
+            out.push_back(files.begin()->second);
+        }
     }
 }
 

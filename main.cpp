@@ -8,6 +8,7 @@
 #include "actions.h"
 #include "parse.h"
 #include "utilities.h"
+#include "list_cmd.h"
 
 static const char *version = ".9";
 
@@ -36,10 +37,10 @@ int main(int argc, char ** argv)
     std::string infile;
     std::vector<std::string> nodash;
     std::string logname;
-    std::string timespec;
+    std::string before;
+    std::string after;
+    std::string locate;
     uint64_t timestamp(0);
-    bool before(false);
-    bool after(false);
     bool list(false);
 
     for (int a = 1; a < argc; ++a)
@@ -80,8 +81,7 @@ int main(int argc, char ** argv)
                 std::cout << "--before requires time spec" << std::endl;
                 return 1;
             }
-            timespec = argv[a];
-            before = true;
+            before = argv[a];
         }
         else if (strcmp (argv[a], "--after") == 0)
         {
@@ -92,8 +92,18 @@ int main(int argc, char ** argv)
                 std::cout << "--after requires time spec" << std::endl;
                 return 1;
             }
-            timespec = argv[a];
-            after = true;
+            after = argv[a];
+        }
+        else if (strcmp (argv[a], "--locate") == 0)
+        {
+            ++a;
+            if (a == argc)
+            {
+                usage();
+                std::cout << "--locate requires time" << std::endl;
+                return 1;
+            }
+            locate = argv[a];
         }
         else if (strcmp (argv[a], "--list") == 0)
         {
@@ -127,33 +137,11 @@ int main(int argc, char ** argv)
             std::cerr << "--list requires --logname" << std::endl;
             return 1;
         }
-        std::map<uint64_t, logfind::FileInfo> files;
-
-        logfind::GetFileInfos(logname, files, true);
-        for (auto& pr : files)
-        {
-            const logfind::FileInfo& fi = pr.second;
-            if (fi.rotatetime)
-            {
-                uint64_t diff = fi.rotatetime - fi.timestamp;
-                int hours, min, secs;
-                logfind::duration(diff, nullptr, nullptr, nullptr, &hours, &min, &secs, nullptr);
-
-                std::cout << fi.filepath << std::endl << "     " << fi.sTimestamp << "  ->  " << fi.srotatetime;
-                if (fi.filepath.find(".gz") != std::string::npos)
-                    std::cout << " (" << hours << "h " << min << "m " << secs << "s) " << fi.size/1000000 << "/" << (fi.size*20)/1000000 << " MB" << std::endl;
-                else
-                    std::cout << " (" << hours << "h " << min << "m " << secs << "s) " << fi.size/1000000 << " MB" << std::endl;
-            }
-            else
-            {
-                std::cout << fi.filepath << std::endl << "     " << fi.sTimestamp << " " << fi.size/1000000 << " MB" << std::endl;
-            }
-        }
+        logfind::list_cmd(logname, locate);
         return 0;
     }
 
-    if (!timespec.empty() && logname.empty())
+    if ((!before.empty() || !after.empty()) && logname.empty())
     {
         std::cerr << "--before or --after requires --logname" << std::endl;
         return 1;
@@ -192,60 +180,24 @@ int main(int argc, char ** argv)
     std::vector<logfind::FileInfo> filesToProcess;
     if (!logname.empty())
     {
-        if (before || after)
+        bool bBefore(false);
+        if (!before.empty())
         {
-            timestamp = logfind::TimespecToMicros(timespec);
+            bBefore = true;
+            timestamp = logfind::TimespecToMicros(before);
+        }
+        else if (!after.empty())
+        {
+            bBefore = false;
+            timestamp = logfind::TimespecToMicros(after);
         }
         else
         {
-            before = true;
+            bBefore = true;
             timestamp = logfind::GetCurrentTimeMicros();
         }
 
-        std::map<uint64_t, logfind::FileInfo> files;
-
-        logfind::GetFileInfos(logname, files, false);
-
-        // search the logrotate time until our timestamp
-        // is later
-        uint64_t key;
-        for (auto it = files.begin(); it != files.end(); ++it)
-        {
-            if (it->second.key > timestamp)
-            {
-                key = it->first;
-                ++it;
-                if (it != files.end())
-                {
-                    // Lets make sure our timestamp isn't in the next file
-                    std::string s;
-                    uint64_t t = logfind::GetFirstLineTimestamp(it->second.filepath, s);
-                    if (t < timestamp)
-                        key = it->first;
-                }
-                break;
-            }
-        }
-        // we have our starting file, collect the files we need to process
-        if (after)
-        {
-            auto it = files.find(key);
-            while (it != files.end())
-            {
-                filesToProcess.push_back(it->second);
-                ++it;
-            }
-        }
-        else
-        {
-            auto it = files.find(key);
-            while (it != files.begin())
-            {
-                filesToProcess.push_back(it->second);
-                --it;
-            }
-            filesToProcess.push_back(files.begin()->second);
-        }
+        logfind::GetFilesToProcess(logname, timestamp, bBefore, filesToProcess);
     }
     else
     {

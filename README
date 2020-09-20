@@ -17,19 +17,30 @@ useful is the 'print' action, with a multitude of print options. There are also 
 anaylsys actions implemented. You can also output line matches to any number of 
 output files to separate them if wanted.
 
-Custom actions can be easily implemented for customizing. For instance, we could
-create an action to pretty print an ER, or maybe convert it to json.
+In addition to searching, there are options (--cat) to send to stdout a time range of
+the logs. You can also split a time range into multiple files.
+
+Logfind is extensible in that additional actions can be easily implemented for customizing. 
+For instance, we could create an action to pretty print an ER, or maybe convert it to json.
 
 
                              SYNOPSYS
 
 logfind pattern pattern ... file[.gz]                                    (1)
+    Search for pattern(s) in a log file
 
-logfind --script file infile                                               (2)
+logfind --script scriptfile infile                                       (2)
+    Search for patterns using a script in a logfile
 
 logfind --logname logname [--script file] [--after spec | --before spec] [pattern ...]   (3)
+    Search for patterns in all logs with the ability to set a start time
+    and direction.
 
-logfind --logname logname --list                                         (4)
+logfind --cat start-time [--duration duration-time] [--split size] --logname logname     (5)
+    cat or split a time range of the logs
+
+logfind --list [--locate timestamp] --logname logname                     (6)
+    List information about each logfile
 
 (1) This is the simplist use of the program. It will search the given file
     for multiple patterns similar to grep -F. You can use '-' for stdin
@@ -54,12 +65,24 @@ logfind --logname logname --list                                         (4)
 
     --logname: The OC_cme.log is implied to be OC_cme.log*
 
-(4) This is a helpful little command that will display the starting and ending times
-    of a logfile, as well as the size and approx decompressed size.
+(5) Using --cat will send to stdout the log files.
+    start-time:    This sets the starting point of the log. It is in TTLOG format
+                   "YYYY-MM-DD hh:mm:ss"
+    duration-time: How much should be concatenated. Duration is "hh:mm:ss"
+                    
+    --split-size:  Split the output into multiple files. Size is in megabytes. The 
+                   name of the files will be:
+                   aa-<filename> through
+                   zz-<filename>.
+
+(6) This is a helpful little command that will display the starting and ending times
+    of each logfile, the duration of the logfile as well as the size and approx decompressed size.
+    --locate: If a time (in TTLOG format) is given, it will output the name of the logfile
+              that contains that timestamp
 
 COMMAND LINE EXAMPLES
         logfile bb77a423-f475-434b-a336-3bd09a32c464 OC_cme.log
-           Search for the order in the givem file
+           Search for the order in the given file
 
         logfind --logname OC_cme.log bb77a423-f475-434b-a336-3bd09a32c464
            Search for the order starting at the latest logfile and search through
@@ -67,11 +90,20 @@ COMMAND LINE EXAMPLES
 
         logfind --logname OC_cme.log --before "2020-09-10 03:22:00" bb77a423-f475-434b-a336-3bd09a32c464 "S T A R T"
            Search for the order starting at the containing the given timestamp and search
-           each older log in order. Also print any OC starts that may have happened
+           each older log in backward order. Also print any OC starts that may have happened
 
         logfind --logname OC_cme.log --after "2020-09-10 03:22:00" bb77a423-f475-434b-a336-3bd09a32c464 "S T A R T"
            Search for the order starting at the containing the given timestamp and search
-           each newer log in order. Also print any OC starts that may have happened
+           each newer log in forward order. Also print any OC starts that may have happened
+
+        logfind --cat "2020-08-09 17:30:00" --duration "00:30:00" --logname OC_cme.log
+           Cat 30 minutes worth of logs starting at the given time
+
+        logfind --cat "2020-08-09 17:30:00" --duration "00:30:00" --split 100 --logname OC_cme.log
+           Split 30 minutes worth of logs starting at the given time, into 100MB sized files
+
+        logfind --list --locate "2020-07-04 03:00:10" --logname OC_cme.log
+            Locate the logfile that contains the given timestamp
 
 
 
@@ -86,7 +118,7 @@ a set of associated actions.
 A pattern is a fixed string, regex is not supported.
 
 SYNTAX
-    The basic syntax is pretty simple.
+    # The basic syntax is pretty simple.
     /pattern/ {
         action
           .
@@ -138,13 +170,6 @@ ACTIONS
             Perform the actions n number of times. If --exit is specified, the program will
             exit when the count is reached, otherwise any further matches of this pattern 
             will be ignored.
-
-        pipe "command-line"
-            The output of actions following this action will be sent to "program". It is possible to 
-            send the output to multiple programs, or have each pattern match sent to separate programs
-            if desired.
-
-            This is not yet implemented. To be determined if this is useful or not.
 
         after n [--fmt "fmt"]
             Print n lines after the match. 
@@ -290,7 +315,7 @@ EXAMPLES
         /bb77a423-f475-434b-a336-3bd09a32c464/ {
             /EXEC_TYPE_TRADE/ {
                 /account_id=/ {
-                    # Because er's are printed with space separated field=value
+                    # Because er's are logged with space separated field=value
                     # pairs (user_id=1234 account_id=5678 price=1.3...) we print
                     # the starting at the match up to the first space character
                     print "account-id: ${match/ }\n"
@@ -305,6 +330,6 @@ NOTES
     See https://github.com/morenice/ahocorasick
     for original aho-corasick algorithm code I stole.
 
-    I have not used flex/bison for the parser, but hand coded it. This will prob change in the future
+    I have not used flex/bison for the parser, but hand coded it. This will may change in the future
     but as of now, it is rather crude and sensitive to syntax errors and may crash if not correct.
 

@@ -1,15 +1,24 @@
+#################################################################
+# This script is used to search for various OC startup and special
+# events.
+#
+
+# OC was started
 /S T A R T I N G/ {
     print
 }
 
+# OC is shutting down
 /S H U T D O W N/ {
     print
 }
 
+# we have a new leader
 /| LEADER |/ {
     print
 }
 
+# Startup build and other info...
 /| build/ {
     print
 }
@@ -29,6 +38,7 @@
     print
 }
 
+# Exchange schedule state at startup
 /Exchange started in up/ {
     print
 }
@@ -41,6 +51,7 @@
     print
 }
 
+# Orderserver became ready
 /orderserver is ready/ {
     print
 }
@@ -53,22 +64,27 @@
     print
 }
 
+# A member joined the cluster
 /joining cluster/ {
     print
 }
 
+# A member left the cluster
 /left cluster/ {
     print
 }
 
+# Zookeeper messages
 /| ZOOKEEPER/ {
     print
 }
 
+# Some darwin stuff.
 /Initializing Darwin ServiceInstanceImpl/ {
     print
 }
 
+# Print all errors
 /| ERROR |/ {
     print
 }

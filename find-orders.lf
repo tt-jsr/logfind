@@ -1,34 +1,65 @@
+# Helpful script for finding an orderid
 
+# When processing multiple files, this will be sent to 
+# stdout so we know what file is getting processed. If 
+# redirecting to a file, this will go with it.
 /!file-start!/ {
     print "File start: ${filename} (${rotate-time})\n"
 }
 
+# OC startup
 /S T A R T/ {
     print
 }
 
-# This is a test
+# OC shutdown
 /S H U T D O W N/ {
     print
 }
 
+# Replace this with the order-id you want to find
 /7dfd611d-1d25-4c4f-af7b-5b93907a2fdc/ {
-    file --stderr
-    print "Match found\n"
-    file --stdout
-    /EXEC_TYPE_NEW/ {
-        print "NOS: ${lineno} "
+    /ExecutionReport/ {
+        /EXEC_TYPE_NEW/ {
+            # Assuming we redirected output to a file, this is written to
+            # stderr to indicate we are finding matches so the user can at
+            # least see something happening
+            file --stderr
+            print "NOS found\n"
+            file --stdout
+            print "NOS: ${lineno} "
+        }
+        /EXEC_TYPE_REPLACE/ {
+            file --stderr
+            print "REPLACE found\n"
+            file --stdout
+
+            # I added this just to see how active an ase/algo might be running
+            interval "Time since last CxlRpl ${time}\n"
+            print "REPLACE: ${lineno} "
+        }
+        /EXEC_TYPE_TRADE/ {
+            file --stderr
+            print "TRADE found\n"
+            file --stdout
+            print "TRADE: ${lineno} "
+        }
+        /EXEC_TYPE_CANCEL/ {
+            file --stderr
+            print "CANCEL found\n"
+            file --stdout
+            print "CANCEL: ${lineno} "
+        }
     }
-    /EXEC_TYPE_REPLACE/ {
-        interval "Cxlrpl interval ${TIME}\n"
-        print "REPLACE: ${lineno} "
+
+    /OrderCancelReject/ {
+        file --stderr
+        print "OrderCancelReject found\n"
+        file --stdout
+        print "OrderCancelReject: ${lineno} "
     }
-    /EXEC_TYPE_TRADE/ {
-        print "TRADE: ${lineno} "
-    }
-    /EXEC_TYPE_CANCEL/ {
-        print "CANCEL: ${lineno} "
-    }
+
+    # Now print the line
     print 
 }
 

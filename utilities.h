@@ -48,6 +48,11 @@ namespace logfind
     // Get the list of log files in the /var/log/debesys and sub directories
     bool GetFileList(const std::string& logfilename, std::vector<FileInfo>&);
 
+    // Get a list of file to process. The is a filter and ordered version of
+    // GetFileList(), based on the timestamp and the before flag, the output
+    // will be a list of files to process in the proper order
+    void GetFilesToProcess(const std::string& logname, uint64_t timestamp, bool before, std::vector<FileInfo>& out);
+
 
     // Get fileinfo for logfile name
     void GetFileInfos(const std::string& logfilename, std::map<uint64_t, FileInfo>& out, bool includeTimestamp);
