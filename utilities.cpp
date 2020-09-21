@@ -143,6 +143,10 @@ namespace logfind
         memset(&tm, 0, sizeof(tm));
         tm.tm_mday = 1;
 
+        // very basic validation
+        if (*(time+4) != '-' || *(time+7) != '-' )
+            return 0;
+
         char *p(nullptr);
         int micros = 0;
         tm.tm_year = std::strtol(time, &p, 10) - 1900;
@@ -181,6 +185,36 @@ namespace logfind
         uint64_t r = (uint64_t)t * 1000000ULL;
         r += micros;
         return r;
+    }
+
+    uint64_t HMS2micros(const char *time, uint32_t len)
+    {
+        //17:03:45
+        // very basic validation
+        if (*(time+2) != ':' || *(time+5) != ':' )
+            return 0;
+
+        uint64_t hour(0);
+        uint64_t min(0);
+        uint64_t sec(0);
+
+        char *p(nullptr);
+        hour = std::strtol(time, &p, 10);
+        hour *= MICROS_IN_HOUR;
+        if (*p == ':')
+        {
+            ++p;
+            min = std::strtol(p, &p, 10);
+            min *= MICROS_IN_MIN;
+            if (*p == ':')
+            {
+                ++p;
+                sec = std::strtol(p, &p, 10);
+                sec *= MICROS_IN_SEC;
+            }
+        }
+
+        return hour + min + sec;
     }
 
     std::string micros2TTLOG(uint64_t micros, bool bPrintMicro)

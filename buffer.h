@@ -41,6 +41,10 @@ namespace logfind
          */
         // Available bytes for reading
         uint32_t availableReadBytes();
+        void incrementReadPosition(uint32_t);
+
+        // Set the readPos via a pointer into the buffer
+        bool setReadPos(const char *p);
 
         // current read position
         char *readPos();

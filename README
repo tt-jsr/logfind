@@ -50,13 +50,13 @@ logfind --list [--locate timestamp] --logname logname                     (6)
 (3) Using --logname will search all the log files in
     /var/log/debesys and /var/log/debesys/oldlogs. 
     --before will locate the correct file and then search from this point
-             to older.
+             to older, going backwards through the log files
     --after will locate the proper file and start the search at this point
-            to newer
+            to newer, going forward though the log files.
 
-    If neither --before or --after is used, the files will be searched from 
-    newest to oldest, until the user stops the search or there are no more files 
-    to search.
+    If neither --before or --after is used, the files will be searched backwards 
+    from newest to oldest, until the user stops the search or there are no more 
+    files to search.
 
     the --before and --after spec can take the following formats:
         "YYYY-MM-DD hh:mm:ss"    # "2020-05-04 17:30:00" - TTLOG format in UTC
@@ -74,6 +74,8 @@ logfind --list [--locate timestamp] --logname logname                     (6)
                    name of the files will be:
                    aa-<filename> through
                    zz-<filename>.
+
+                   The files will be written in the current directory
 
 (6) This is a helpful little command that will display the starting and ending times
     of each logfile, the duration of the logfile as well as the size and approx decompressed size.

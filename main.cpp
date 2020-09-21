@@ -169,6 +169,16 @@ int main(int argc, char ** argv)
 
     if (list)
     {
+        if (!cat.empty())
+        {
+            std::cerr << "--cat and --list cannot be used together" << std::endl;
+            return 1;
+        }
+        if (!script.empty())
+        {
+            std::cerr << "--script and --list cannot be used together" << std::endl;
+            return 1;
+        }
         if (logname.empty())
         {
             std::cerr << "--list requires --logname" << std::endl;
@@ -180,6 +190,21 @@ int main(int argc, char ** argv)
 
     if (!cat.empty())
     {
+        if (logname.empty())
+        {
+            std::cerr << "--cat requires --logname" << std::endl;
+            return 1;
+        }
+        if (list)
+        {
+            std::cerr << "--cat and --list cannot be used together" << std::endl;
+            return 1;
+        }
+        if (!script.empty())
+        {
+            std::cerr << "--cat and --script cannot be used together" << std::endl;
+            return 1;
+        }
         if (logfind::cat_cmd(logname, cat, duration, split) == false)
         {
             std::cerr << "--cat, invalid arguments" << std::endl;

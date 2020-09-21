@@ -134,18 +134,22 @@ namespace logfind
             delete [] lb.buf;
             break;
         case LINEBUF_POOL:
-            assert(false);
+            assert(false);  // not implementd yet
             break;
         case LINEBUF_NONE:
             break;
         case LINEBUF_INVALID:
-            assert(false);
             break;
         }
+        lb.buf = nullptr;
+        lb.bufsize = 0;
+        lb.flags = LINEBUF_INVALID;
     }
 
     bool Application::alloc(linebuf& lb)
     {
+        if (lb.buf)
+            free(lb);
         lb.buf = new char[1024*1024];
         lb.bufsize = 1024*1024;
         lb.len = 0;

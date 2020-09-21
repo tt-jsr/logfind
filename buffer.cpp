@@ -81,6 +81,19 @@ namespace logfind
         return datalen_ - readpos_;
     }
 
+    bool Buffer::setReadPos(const char *p)
+    {
+        if (p < buffer_ || p >= &buffer_[datalen_])
+            return false;
+        readpos_ = p - buffer_;
+        return true;
+    }
+
+    void Buffer::incrementReadPosition(uint32_t n)
+    {
+        readpos_ += n;
+    }
+
     char *Buffer::readPos()
     {
         return buffer_+readpos_;
