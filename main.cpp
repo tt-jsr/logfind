@@ -11,7 +11,7 @@
 #include "list_cmd.h"
 #include "cat_cmd.h"
 
-static const char *version = ".9";
+static const char *version = ".1";
 
 void usage()
 {

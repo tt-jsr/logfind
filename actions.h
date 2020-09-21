@@ -123,6 +123,14 @@ namespace logfind
         bool use_time_format_;
     };
 
+    struct Regex : public Action
+    {
+        Regex();
+        bool parse(const std::vector<std::string>&) override;
+        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_exit(int fd);
+    };
+
     Action *ActionFactory(const std::string&);
 }
 

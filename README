@@ -10,7 +10,7 @@ and /var/log/debesys/oldlogs in proper order if searching through multiple files
 
 In addition, if you know when to start your search, it can very quickly locate the
 correct file to start at and begin searching through the files from the given time 
-through newer files, or the given time through older files.
+forward through newer files, or the given time backwards through older files.
 
 If using a script, you can define actions to be performed on each match. The most 
 useful is the 'print' action, with a multitude of print options. There are also some

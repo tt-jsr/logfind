@@ -33,7 +33,6 @@
             file --stderr
             print "REPLACE found\n"
             file --stdout
-
             # I added this just to see how active an ase/algo might be running
             interval "Time since last CxlRpl ${time}\n"
             print "REPLACE: ${lineno} "

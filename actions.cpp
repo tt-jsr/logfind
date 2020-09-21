@@ -603,6 +603,27 @@ namespace logfind
 
     /*********************************************************************/
 
+    Regex::Regex()
+    {
+
+    }
+    bool Regex::parse(const std::vector<std::string>& args) 
+    {
+        if (args.size() != 2)
+            return false;
+        auto rex = args[0];
+        auto var = args[1];
+    }
+    void Regex::on_command(int fd, uint32_t lineno, linebuf& matching_line)
+    {
+
+    }
+    void Regex::on_exit(int fd)
+    {
+
+    }
+    /*********************************************************************/
+
     Action *ActionFactory(const std::string& name)
     {
         if (name == "print")
