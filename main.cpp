@@ -17,7 +17,8 @@ void usage()
 {
     std::cout << "usage: logfind [--script file] pattern ... searchFile" << std::endl;
     std::cout << "       logfind [--script file][--logname name][--after spec][--before spec] [pattern pattern...] file" << std::endl;
-    std::cout << "       logfind --logname name --list" << std::endl;
+    std::cout << "       logfind --list --logname name [--locate datetime] " << std::endl;
+    std::cout << "       logfind --cat datetime --logname name [--duration hh:mm::s][--split n] " << std::endl;
     std::cout << "       logfind --version" << std::endl;
 }
 
