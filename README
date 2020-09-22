@@ -77,7 +77,7 @@ logfind --list [--locate timestamp] --logname logname                     (6)
 
                    The files will be written in the current directory
 
-(6) This is a helpful little command that will display the starting and ending times
+(6) --list: This is a helpful little command that will display the starting and ending times
     of each logfile, the duration of the logfile as well as the size and approx decompressed size.
     --locate: If a time (in TTLOG format) is given, it will output the name of the logfile
               that contains that timestamp
@@ -333,6 +333,18 @@ EXAMPLES
                     # print the er
                     print
                 }
+            }
+        }
+
+    Search for an order id, for each trade, 
+    print the account id and user id using regex.
+        /bb77a423-f475-434b-a336-3bd09a32c464/ {
+            /EXEC_TYPE_TRADE/ {
+                regex "account_id=([0-9]*)" acct   # capture the id
+                regex "user_id=([0-9]*)" user
+
+                print "acct: ${acct} user: ${user}"
+                print
             }
         }
 

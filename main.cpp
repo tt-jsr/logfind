@@ -15,11 +15,32 @@ static const char *version = ".1";
 
 void usage()
 {
-    std::cout << "usage: logfind [--script file] pattern ... searchFile" << std::endl;
-    std::cout << "       logfind [--script file][--logname name][--after spec][--before spec] [pattern pattern...] file" << std::endl;
-    std::cout << "       logfind --list --logname name [--locate datetime] " << std::endl;
-    std::cout << "       logfind --cat datetime --logname name [--duration hh:mm::s][--split n] " << std::endl;
-    std::cout << "       logfind --version" << std::endl;
+    std::cerr << "\
+       usage: logfind pattern ... searchFile \
+             Find patterns in the given searchFile \
+\
+       logfind --script file --logname name [--after spec][--before spec] [pattern pattern...] \
+             Run a script for pattern matching. \
+             --logname: The name of the logfile (e.g. OC_cme.log). This will search all logs in. \
+                        /var/log/debesys and /var/log/debesys/oldlogs in chronological order. \
+             --after spec: Provide a starting time and search logs after this date-time. \
+             --before spec: Provide a starting time and search logs before this date-time. \
+                            spec is TTLOG format \"YYYY-MM-DD hh:mm:ss\" \
+                                    n:days \
+                                    n:weeks \
+\
+       logfind --list --logname name [--locate datetime] \
+             List the log files. \
+             --locate: locate the logfile that contains the datetime in TTLOG format \"YYYY-MM-DD hh:mm:ss\". \
+\
+       logfind --cat datetime --logname name [--duration hh:mm::s][--split n] \
+             Concatenate a time range of the logfiles. \
+             --duration: The time rangle of logs to output, in hh:mm:ss format. \
+             --split size: Split the files in size MB chunks. \
+                           Filenames will be aa-filename through zz-filename. \
+\
+       logfind --version \
+";
 }
 
 void AddPatterns(logfind::Application& app, std::vector<std::string>& patterns)

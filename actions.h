@@ -1,6 +1,8 @@
 #ifndef ACTIONS_H_
 #define ACTIONS_H_
 
+#include <regex>
+
 namespace logfind
 {
     class AhoContext;
