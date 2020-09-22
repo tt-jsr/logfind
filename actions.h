@@ -129,6 +129,9 @@ namespace logfind
         bool parse(const std::vector<std::string>&) override;
         void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
         void on_exit(int fd);
+
+        std::regex regex_;
+        std::string varname_;
     };
 
     Action *ActionFactory(const std::string&);

@@ -3,6 +3,8 @@
 #include <limits>
 #include <assert.h>
 #include <iostream>
+#include <iterator>
+#include <regex>
 #include "lru_cache.h"
 #include "aho_context.h"
 #include "file.h"
@@ -201,7 +203,7 @@ namespace logfind
             p += 4;
             return;
         }
-        if (strncmp(p, "${2}", 4) == 0)     // ${offset}
+        else if (strncmp(p, "${2}", 4) == 0)     // ${offset}
         {
             char buf[32];
             sprintf (buf, "%d", aho_match_->line_match_pos);
@@ -209,7 +211,7 @@ namespace logfind
             p += 4;
             return;
         }
-        if (strncmp(p, "${3}", 4) == 0)     // ${line}
+        else if (strncmp(p, "${3}", 4) == 0)     // ${line}
         {
             int start(line_start_), end(line_end_);
             if (start > (int)matchingline.len)
@@ -239,7 +241,7 @@ namespace logfind
             return;
         }
 
-        if (strncmp(p, "${4}", 4) == 0)     // ${match}
+        else if (strncmp(p, "${4}", 4) == 0)     // ${match}
         {
             char *src = matchingline.buf+aho_match_->line_match_pos;
             write(fd, src, aho_match_->len);
@@ -263,14 +265,14 @@ namespace logfind
             p += 4;
             return;
         }
-        if (strncmp(p, "${5}", 4) == 0)     // ${filename}
+        else if (strncmp(p, "${5}", 4) == 0)     // ${filename}
         {
             std::string fname = theApp->filename();
             write (fd, fname.c_str(), fname.size());
             p += 4;
             return;
         }
-        if (strncmp(p, "${6}", 4) == 0)     // ${time}
+        else if (strncmp(p, "${6}", 4) == 0)     // ${time}
         {
             uint64_t t = TTLOG2micros(matchingline.buf, matchingline.len);
             char buf[32];
@@ -280,7 +282,7 @@ namespace logfind
             p += 4;
             return;
         }
-        if (strncmp(p, "${7}", 4) == 0)     // ${rotate-time}
+        else if (strncmp(p, "${7}", 4) == 0)     // ${rotate-time}
         {
             uint64_t ts = TTLOGRotateTime(theApp->filename());
             if (ts)
@@ -298,6 +300,29 @@ namespace logfind
             }
             p += 4;
             return;
+        }
+        else
+        {
+            const char *save = p;
+            p += 2;
+            std::string name;
+            while (*p && *p != '}')
+            {
+                name.push_back(*p);
+                ++p;
+            }
+            if (*p)
+                ++p;
+            Data *d = theApp->getData(name);
+            if (d)
+            {
+                std::string s = d->tostr();
+                write(fd, s.c_str(), s.size());
+            }
+            else
+            {
+                write(fd, save, p-save);
+            }
         }
     }
 
@@ -611,13 +636,32 @@ namespace logfind
     {
         if (args.size() != 2)
             return false;
-        auto rex = args[0];
-        auto var = args[1];
+        regex_ = std::regex(args[0], std::regex_constants::egrep);
+        varname_ = args[1];
+        return true;
     }
+
     void Regex::on_command(int fd, uint32_t lineno, linebuf& matching_line)
     {
-
+        std::smatch match;
+        std::string line(matching_line.buf, matching_line.len);
+        if (std::regex_search(line, match, regex_))
+        {
+            if (match.size() == 1)
+            {
+                StringData *pd = new StringData();
+                pd->str = match[0];
+                theApp->setData(varname_, pd);
+            }
+            if (match.size() >= 2)
+            {
+                StringData *pd = new StringData();
+                pd->str = match[1];
+                theApp->setData(varname_, pd);
+            }
+        }
     }
+
     void Regex::on_exit(int fd)
     {
 
@@ -638,6 +682,8 @@ namespace logfind
             return new Count();
         else if (name == "interval")
             return new Interval();
+        else if (name == "regex")
+            return new Regex();
         //else if (name == "after")
             //return new After();
         //else if (name == "before")

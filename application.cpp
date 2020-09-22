@@ -156,6 +156,27 @@ namespace logfind
         lb.flags = LINEBUF_FREE;
     }
 
+    Data *Application::getData(const std::string& name)
+    {
+        auto it = data_.find(name);
+        if (it == data_.end())
+            return nullptr;
+        return it->second;
+    }
+
+    void Application::setData(const std::string& name, Data * d)
+    {
+        auto it = data_.find(name);
+        if (it == data_.end())
+        {
+            data_[name] = d;
+            return;
+        }
+        if (it->second != d)
+            delete it->second;
+        data_[name] = d;
+    }
+
     extern Application *theApp;
 }
 

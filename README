@@ -17,8 +17,8 @@ useful is the 'print' action, with a multitude of print options. There are also 
 analysis actions implemented. You can also output line matches to any number of 
 output files to separate them if wanted.
 
-In addition to searching, there are options (--cat) to send to stdout a time range of
-the logs. You can also split a time range into multiple files.
+In addition to searching, there are options (--cat) to send to stdout a decompressed
+time range of the logs. You can also split a time range into multiple files.
 
 Logfind is also extensible in that additional actions can be easily implemented for customizing. 
 For instance, we could create an action to pretty print an ER, or maybe convert it to json.
@@ -164,9 +164,17 @@ ACTIONS
                             of microseconds. The line's timestamp must be in TTLOG format
                 ${rotate-time} If the file has been rotated, print time of rotation in TTLOG format
                 ${filename} Print the current filename
+                ${varname}  Print the contents of "varname". Some actions can set data into a variable,
+                            this will print the variable. See regex for an example.
 
             Note: If a "fmt" is specified, a NL is not automatically added. You must supply
                   the \n if you want a new line.
+
+        regex "pattern" varname
+            Perform a regex match against the matching line. The regex grammer is egrep. If a match
+            is found, the match will be placed in the variable 'varname'. This can then be printed
+            using a print format. If a capture is used in the pattern, the captured text will be placed
+            into 'varname'. Only one capture is supported.
 
         max-count n [--exit]
             Perform the actions n number of times. If --exit is specified, the program will
