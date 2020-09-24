@@ -96,6 +96,9 @@ namespace logfind
             return false;
         }
         lines_.clear();
+        current_line_offset_ = 0;
+        current_lineno_ = 0;
+        current_buffer_ = nullptr;
 
         // The acism code needs the patterns in a MEMREF
         // structure

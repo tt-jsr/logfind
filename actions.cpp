@@ -214,7 +214,7 @@ namespace logfind
 
         else if (strncmp(p, "${4}", 4) == 0)     // ${match}
         {
-            const char *src = match.matched_text.c_str();
+            const char *src = match.matched_line.buf + match.match_offset_in_line;
             write(fd, src, match.matched_text.size());
             src += match.matched_text.size();
             if (match_delim_ != '\0') {
