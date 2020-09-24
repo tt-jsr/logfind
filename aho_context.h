@@ -2,13 +2,13 @@
 #define AHO_CONTEXT_H_
 
 #include <cstdint>
-#include <unordered_map>
+#include <map>
 #include <string.h>
 #include <vector>
 #include <memory>
 #include "file.h"
-
-#include "ahocorasick.h"
+#include "acism.h"
+#include "linebuf.h"
 
 namespace logfind
 {
@@ -25,49 +25,68 @@ namespace logfind
     AhoLineContextPtr MakeAhoLineContext();
     AhoFileContextPtr MakeAhoFileContext();
 
+    struct Match
+    {
+        linebuf matched_line;       // The line with the match
+        std::string matched_text;   // The matched text
+        F_OFFSET line_offset_in_file;              // The offset into the file for the line
+        F_OFFSET match_offset_in_file;             // The Offset into the file for the match
+        L_OFFSET match_offset_in_line;     // The offset into the line for the match
+        int lineno;                 // The line number that matched
+        AhoContext *searchCtx;
+    };
+
     class AhoContext
     {
     public:
         AhoContext();
-        ~AhoContext();
+        virtual ~AhoContext();
         PatternActionsPtr add_match_text(const char *p, uint32_t len);
         PatternActionsPtr add_match_text(const char *p);
-        void build_trie();
-        virtual char get() = 0;
-        virtual bool readLine(uint64_t lineno, linebuf& l) = 0;
         int getPatternId(const char *);
-        void on_match(struct aho_match_t* m);
+        int on_match(int strnum, B_OFFSET textpos);
+        virtual void on_line(B_OFFSET linepos) {};
+        virtual void matchData(Match& m, B_OFFSET matchpos) = 0;
         void on_exit();
     protected:
-
-        struct ahocorasick aho_;
-        std::unordered_map<int, PatternActionsPtr> match_actions;
-        std::unordered_map<std::string, int> match_str_actions;
+        std::unordered_map<int, PatternActionsPtr> match_actions_;
+        std::unordered_map<std::string, int> match_str_actions_;
+        std::vector<std::string> patterns_;
+        ACISM *acism_;
+        MEMREF *pattv_;
+        int npatts_;
     };
 
     class AhoFileContext : public AhoContext
     {
     public:
+        ~AhoFileContext() {}
         bool find(const char *fname);
         std::string filename() {return file.filename();}
     protected:
         ReadFile file;
     private:
-        char get() override;
-        bool readLine(uint64_t lineno, linebuf& line) override;
+        void matchData(Match& m, B_OFFSET matchpos) override;
+        void on_line(B_OFFSET textpos);
+        F_OFFSET current_line_offset_;
+        uint32_t current_lineno_;
+        Buffer *current_buffer_;
+        std::map<uint64_t, F_OFFSET> lines_; // lineno => fileoffset
     };
 
     class AhoLineContext : public AhoContext
     {
     public:
         AhoLineContext();
-        bool find(const char *p, uint32_t len, uint32_t lineno, uint64_t lineoff);
+        ~AhoLineContext() {}
+        //bool find(const char *p, uint32_t len, uint32_t lineno, uint64_t lineoff);
+        void matchData(Match& m, B_OFFSET matchpos) override;
     protected:
-        std::string line;
-        size_t pos;
+        std::string matched_line_;
+        uint64_t matched_lineno_;
+
     private:
-        char get() override;
-        bool readLine(uint64_t lineno, linebuf& line) override;
+        friend class LineSearch;
     };
 }
 

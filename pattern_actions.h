@@ -13,6 +13,7 @@ namespace logfind
     class AhoLineContext;
     class PatternActions;
     class Action;
+    struct Match;
 
     using PatternActionsPtr = std::shared_ptr<PatternActions>;
     using AhoLineContextPtr = std::shared_ptr<AhoLineContext>;
@@ -22,7 +23,7 @@ namespace logfind
     public:
         PatternActions();
         ~PatternActions();
-        void on_match(AhoContext *ctx, struct aho_match_t* m);
+        void on_match(Match&);
         void on_exit(AhoContext *ctx);
         void add_action(Action *);
         void disable(bool);

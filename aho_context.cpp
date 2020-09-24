@@ -1,13 +1,15 @@
 #include <assert.h>
 #include <cstdint>
+#include <iostream>
 #include "lru_cache.h"
 #include "linebuf.h"
+#include "buffer.h"
 #include "aho_context.h"
 #include "application.h"
 #include "pattern_actions.h"
 
-void callback_match(void *arg, struct aho_match_t* m);
-char aho_getchar(void *arg);
+int on_match(int strnum, int textpos, void *ctx);
+void on_line(int textpos, void *ctx);
 
 namespace logfind
 {
@@ -22,29 +24,35 @@ namespace logfind
     }
 
     AhoContext::AhoContext()
+    :acism_(nullptr)
+    ,pattv_(nullptr)
+    ,npatts_(0)
     {
-        aho_init(&aho_);
-        aho_register_match_callback(&aho_, callback_match, this);
     }
+
     AhoContext::~AhoContext()
     {
-        aho_destroy(&aho_);
+        acism_destroy(acism_);
+        delete[] pattv_;
     }
 
     int AhoContext::getPatternId(const char *p)
     {
-        auto it = match_str_actions.find(p);
-        if (it != match_str_actions.end())
-            return it->second;
+        for (size_t i = 0; i < patterns_.size(); i++)
+        {
+            if (strcmp(patterns_[i].c_str(), p) == 0)
+                return i;
+        }
         return -1;
     }
 
     PatternActionsPtr AhoContext::add_match_text(const char *p, uint32_t len)
     {
         auto pa = logfind::MakePatternActions();
-        int id = aho_add_match_text(&aho_, p, len);
-        match_actions.emplace(id, pa);
-        match_str_actions.emplace(std::string(p, len), id);
+        patterns_.push_back(std::string(p, len));
+        uint32_t id = patterns_.size()-1;
+        match_actions_.emplace(id, pa);        
+        match_str_actions_.emplace(std::string(p, len), id);
         return pa;
     }
 
@@ -53,21 +61,27 @@ namespace logfind
         return add_match_text(p, strlen(p));
     }
 
-    void AhoContext::build_trie()
+    int AhoContext::on_match(int strnum, B_OFFSET textpos)
     {
-        aho_create_trie(&aho_);
-    }
+        assert (strnum >= 0 && strnum < patterns_.size());
+        textpos -= patterns_[strnum].size(); // the acism code gives us the
+                                             // position at the end of the string
+                                             // so we adjust
+        Match m;
+        m.matched_text = patterns_[strnum];
+        m.searchCtx = this;
+        matchData(m, textpos);
 
-    void AhoContext::on_match(struct aho_match_t* m)
-    {
-        auto it = match_actions.find(m->id);
-        assert(it != match_actions.end());
-        it->second->on_match(this, m);
+        auto it = match_actions_.find(strnum);
+        assert(it != match_actions_.end());
+        it->second->on_match(m);
+        theApp->free(m.matched_line);
+        return 0;
     }
 
     void AhoContext::on_exit()
     {
-        for (auto& pr : match_actions)
+        for (auto& pr : match_actions_)
         {
             pr.second->on_exit(this);
         }
@@ -81,64 +95,93 @@ namespace logfind
         {
             return false;
         }
+        lines_.clear();
+
+        // The acism code needs the patterns in a MEMREF
+        // structure
+        if (acism_ == nullptr)
+        {
+            pattv_ = new MEMREF[patterns_.size()];
+            npatts_ = patterns_.size();
+            for (size_t i = 0; i < patterns_.size(); i++)
+            {
+                (pattv_[i]).ptr = patterns_[i].c_str();  // I am not copying here!
+                (pattv_[i]).len = patterns_[i].size();
+            }
+
+            // Create the context
+            acism_ = acism_create(pattv_, patterns_.size());
+        }
+
         theApp->on_file_start(fname);
-        aho_findtext(&aho_, 0, 0, aho_getchar, this);
+        int state(0);
+        while (true)
+        {
+            if (theApp->is_exit())
+                return true;
+            current_buffer_ = file.get_buffer();
+            if (current_buffer_ == nullptr)
+            {
+                //std::cerr << "buffer is null" << std::endl;
+                break;
+            }
+            MEMREF block;
+            block.ptr = current_buffer_->readPos();
+            block.len = current_buffer_->availableReadBytes();
+
+            //std::cerr << "===JSR read buffer " << current_buffer_->fileoffset() << " " << current_buffer_->availableReadBytes() << std::endl;
+            (void)acism_more(acism_, block, (ACISM_ACTION*)::on_match, (ACISM_LINE*)::on_line, this, &state);
+            current_buffer_->incrementReadPosition((size_t)block.len);
+        }
         theApp->on_file_end(fname);
         return true;
     }
 
-    char AhoFileContext::get() 
+    void AhoFileContext::matchData(Match& m, B_OFFSET matchpos)
     {
-        if (theApp->is_exit())
-            return 0;
-        return file.get();
+        file.readLine(current_line_offset_, m.matched_line);
+        m.line_offset_in_file = current_line_offset_;
+        m.match_offset_in_file = matchpos + current_buffer_->fileoffset();
+        m.lineno = current_lineno_;
+        m.match_offset_in_line = m.match_offset_in_file - current_line_offset_;
     }
 
-    bool AhoFileContext::readLine(uint64_t lineno, linebuf& lb)
+    void AhoFileContext::on_line(B_OFFSET textpos)
     {
-        return file.readLine(lineno, lb);
+        current_line_offset_ = current_buffer_->fileoffset() + textpos + 1;
+        ++current_lineno_;
+        lines_.emplace(current_lineno_, current_line_offset_);
     }
 
     /*********************************************************************/
     AhoLineContext::AhoLineContext()
-    :pos(0)
+    :matched_lineno_(0)
     {
     }
 
-    bool AhoLineContext::find(const char *p, uint32_t len, uint32_t lineno, uint64_t lineoff)
+    void AhoLineContext::matchData(Match& m, B_OFFSET matchpos)
     {
-        pos = 0;
-        line.assign(p, len);
-        aho_findtext(&aho_, lineno, lineoff, aho_getchar, this);
-    }
-
-    char AhoLineContext::get()
-    {
-        if (theApp->is_exit())
-            return 0;
-        if (pos == line.size())
-            return 0;
-        return line[pos++];
-    }
-
-    bool AhoLineContext::readLine(uint64_t lineno, linebuf& lb)
-    {
-        lb.buf = (char *)line.c_str();
-        lb.len = line.size();
-        lb.bufsize = line.capacity();
-        lb.flags = LINEBUF_NONE;
+        m.matched_line.buf = (char *)matched_line_.c_str();
+        m.matched_line.len = matched_line_.size();
+        m.matched_line.flags = LINEBUF_NONE;
+        m.matched_line.bufsize = matched_line_.size();
+        m.line_offset_in_file = 0;
+        m.match_offset_in_file = matchpos;
+        m.lineno = matched_lineno_;
+        m.match_offset_in_line = matchpos;
     }
 }
 
-char aho_getchar(void *arg)
+int on_match(int strnum, int textpos, void *v)
 {
-    logfind::AhoContext *pCtx = (logfind::AhoContext *)arg;
-    return pCtx->get();
+    logfind::AhoContext *ctx = (logfind::AhoContext *)v;
+    return ctx->on_match(strnum, (logfind::B_OFFSET)textpos);
 }
 
-void callback_match(void *arg, struct aho_match_t* m)
+void on_line(int textpos, void *v)
 {
-    logfind::AhoContext *pCtx = (logfind::AhoContext *)arg;
-    pCtx->on_match(m);
+    logfind::AhoContext *ctx = (logfind::AhoContext *)v;
+    ctx->on_line((logfind::B_OFFSET)textpos);
 }
+
 

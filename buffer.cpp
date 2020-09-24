@@ -19,28 +19,28 @@ namespace logfind
         delete [] buffer_;
     }
 
-    bool Buffer::containsFileOffset(uint64_t fileoffset)
+    bool Buffer::containsFileOffset(F_OFFSET fileoffset)
     {
         if (fileoffset >= offset_ && fileoffset < offset_ + datalen_)
             return true;
         return false;
     }
 
-    uint32_t Buffer::getBufferOffsetFromFileOffset(uint64_t fileoff)
+    B_OFFSET Buffer::getBufferOffsetFromFileOffset(F_OFFSET fileoff)
     {
         if (containsFileOffset(fileoff) == false)
-            return (uint32_t)-1;
+            return (B_OFFSET)-1;
         return fileoff - offset_;
     }
 
-    bool Buffer::readline(uint64_t fileoffset, linebuf& lb)
+    bool Buffer::readline(F_OFFSET fileoffset, linebuf& lb)
     {
         theApp->alloc(lb);
-        uint32_t bufpos = getBufferOffsetFromFileOffset(fileoffset);
+        B_OFFSET bufpos = getBufferOffsetFromFileOffset(fileoffset);
         const char *p = buffer_ + bufpos;
-        uint32_t count = bufpos;
+        size_t count = bufpos;
         char *dest = lb.buf;
-        uint32_t numwriten(0);
+        size_t numwriten(0);
         while (*p != '\n' && count < datalen_ && numwriten < lb.bufsize)
         {
             *dest++ = *p++;
@@ -66,17 +66,17 @@ namespace logfind
         return buffer_[readpos_++];
     }
 
-    uint64_t Buffer::fileoffset()
+    F_OFFSET Buffer::fileoffset()
     {
         return offset_;
     }
 
-    uint32_t Buffer::availableWriteBytes()           
+    size_t Buffer::availableWriteBytes()           
     {
         return bufsize_-datalen_;
     }
 
-    uint32_t Buffer::availableReadBytes()           
+    size_t Buffer::availableReadBytes()           
     {
         return datalen_ - readpos_;
     }
@@ -89,7 +89,7 @@ namespace logfind
         return true;
     }
 
-    void Buffer::incrementReadPosition(uint32_t n)
+    void Buffer::incrementReadPosition(size_t n)
     {
         readpos_ += n;
     }
@@ -104,7 +104,7 @@ namespace logfind
         return buffer_+datalen_;
     }
 
-    void Buffer::incrementAvailableReadBytes(uint32_t n)           
+    void Buffer::incrementAvailableReadBytes(size_t n)           
     {
         datalen_ += n;
     }
@@ -114,7 +114,7 @@ namespace logfind
         return availableWriteBytes() == 0;
     }
 
-    void Buffer::reset(uint64_t fileoffset)
+    void Buffer::reset(F_OFFSET fileoffset)
     {
         datalen_ = 0;
         readpos_ = 0;

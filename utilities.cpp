@@ -5,6 +5,7 @@
 #include <iostream>
 #include <ftw.h>
 #include <string.h>
+#include "buffer.h"
 #include "utilities.h"
 #include "lru_cache.h"
 #include "file.h"

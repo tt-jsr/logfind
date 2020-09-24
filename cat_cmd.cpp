@@ -115,7 +115,7 @@ namespace logfind
             {
                 if (BufferTimestamp(pBuffer) > timestamp)
                     break;
-                uint32_t size = pBuffer->availableReadBytes();
+                size_t size = pBuffer->availableReadBytes();
                 pBuffer->incrementReadPosition(size);
                 pBuffer = f.get_buffer();
             }

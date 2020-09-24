@@ -19,12 +19,9 @@ namespace logfind
     ReadFile::ReadFile()
     :pInput_(nullptr)
     ,buffer_(nullptr)
-    ,file_offset_(0)
-    ,lineno_(0)
     ,cache_(10)
     ,eof_(false)
     {
-        lines_[0] = 0;
     }
 
     ReadFile::~ReadFile()
@@ -43,10 +40,7 @@ namespace logfind
         delete pInput_;
         cache_.clear();
         eof_ = false;
-        lineno_ = 0;
-        file_offset_ = 0;
         buffer_ = nullptr;
-        lines_.clear();
         filename_.clear();
     }
 
@@ -77,10 +71,9 @@ namespace logfind
         return cache_.get(page);
     }
 
-    bool ReadFile::readLine(uint64_t lineno, linebuf& lb)
+    bool ReadFile::readLine(F_OFFSET offset, linebuf& lb)
     {
-        uint64_t off = lines_[lineno];
-        Buffer *pBuf = getBufferFromFileOffset(off);
+        Buffer *pBuf = getBufferFromFileOffset(offset);
         if (pBuf == nullptr)
         {
             theApp->alloc(lb);
@@ -89,22 +82,27 @@ namespace logfind
             return true;
         }
         // Buffer may not contain the entire line
-        return pBuf->readline(off, lb);
+        return pBuf->readline(offset, lb);
     }
 
     int ReadFile::read_()
     {
+        F_OFFSET offset; 
+        if (buffer_)
+            offset = buffer_->fileoffset() + BUFSIZE;
+        else
+            offset = 0;
         if (buffer_ == nullptr || buffer_->isFull())
         {
             buffer_ = cache_.get_lru();
-            buffer_->reset(file_offset_);
+            buffer_->reset(offset);
             cache_.add(buffer_);
         }
         int r = pInput_->read(buffer_->writePos(), buffer_->availableWriteBytes());
         if (r <= 0)
             eof_ = true;
         if (r > 0)
-            buffer_->incrementAvailableReadBytes(r);
+            buffer_->incrementAvailableReadBytes((size_t)r);
         return r;
     }
 
@@ -113,6 +111,7 @@ namespace logfind
         return eof_;
     }
 
+    /*
     char ReadFile::get()
     {
         char c = buffer_->getchar();
@@ -124,13 +123,13 @@ namespace logfind
             }
             c = buffer_->getchar();
         }
-        ++file_offset_;
         if (c == '\n')
         {
             lines_[++lineno_] = file_offset_;
         }
         return c;
     }
+    */
 
     int ReadFile::read(char *buf, int size)
     {
@@ -145,7 +144,6 @@ namespace logfind
             size = b;
         memcpy(buf, buffer_->readPos(), size);
         buffer_->incrementReadPosition(size);
-        file_offset_ += size;
         return size;
     }
 
@@ -153,7 +151,7 @@ namespace logfind
     {
         if (buffer_->availableReadBytes() == 0)
         {
-            if (read_() < 0)
+            if (read_() <= 0)
             {
                 return nullptr;
             }

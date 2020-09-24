@@ -37,7 +37,8 @@ namespace logfind
     Buffer *LRUCache::get(uint32_t key)
     {
         Buffer *pBuf = remove_key_(key);
-        add(pBuf);
+        if (pBuf)
+            add(pBuf);
         return pBuf;
     }
 

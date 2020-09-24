@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <map>
+#include "buffer.h"
 #include "lru_cache.h"
 #include "application.h"
 #include "aho_context.h"
@@ -51,7 +52,6 @@ void AddPatterns(logfind::Application& app, std::vector<std::string>& patterns)
         auto filePa = fileSearch->add_match_text(pat.c_str());
         filePa->add_action(new logfind::Print());
     }
-    fileSearch->build_trie();
 }
 
 int main(int argc, char ** argv)

@@ -7,37 +7,29 @@ namespace logfind
 {
     class AhoContext;
     struct linebuf;
+    struct Match;
 
     struct Action
     {
         virtual ~Action() {}
         virtual bool parse(const std::vector<std::string>&) = 0;
-        virtual void on_command(int fd, uint32_t lineno, linebuf& matching_line) = 0;
+        virtual void on_command(int fd, Match& m) = 0;
         virtual void on_exit(int fd) {}
 
-        //helper functions
-        // Get the starting position of the match
-        uint32_t get_match_pos();
-
-        // Get the match len
-        uint32_t get_match_len();
-
-        AhoContext *pCtx_;
         PatternActions *pattern_actions_;
-        struct aho_match_t *aho_match_;
     };
 
     struct After : public Action
     {
         bool parse(const std::vector<std::string>&) override;
-        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_command(int fd, Match&) override;
         uint8_t lines_;
     };
 
     struct Before : public Action
     {
         bool parse(const std::vector<std::string>&) override;
-        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_command(int fd, Match&) override;
         uint8_t lines_;
     };
 
@@ -45,7 +37,7 @@ namespace logfind
     {
         MaxCount();
         bool parse(const std::vector<std::string>&) override;
-        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_command(int fd, Match&) override;
         uint32_t max_count_;
         uint32_t current_count_;
         bool exit_;
@@ -55,10 +47,10 @@ namespace logfind
     {
         Print();
         bool parse(const std::vector<std::string>&) override;
-        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_command(int fd, Match&) override;
 
         bool parse_line_fmt(const char *&p);
-        void substitute(const char *&p, int fd, uint32_t lineno, linebuf& matchingline);
+        void substitute(const char *&p, int fd, Match&);
         std::string format_;
         int line_start_;
         int line_end_;
@@ -69,26 +61,29 @@ namespace logfind
     struct LineSearch : public Action
     {
         LineSearch();
+        ~LineSearch();
         bool parse(const std::vector<std::string>&) override;
-        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_command(int fd, Match&) override;
         void on_exit(int fd);
         PatternActionsPtr add_match_text(const char *, uint32_t len);
         PatternActionsPtr add_match_text(const char *);
-        void build_trie();
 
         AhoLineContextPtr lineSearch_;
+        ACISM *acism_;
+        MEMREF *pattv_;
+        int npatts_;
     };
 
     struct Exit : public Action
     {
         bool parse(const std::vector<std::string>&) override;
-        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_command(int fd, Match&) override;
     };
 
     struct NamedPatternActions : public Action
     {
         bool parse(const std::vector<std::string>&) override;
-        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_command(int fd, Match&) override;
         std::string name_;
     };
 
@@ -96,7 +91,7 @@ namespace logfind
     {
         File();
         bool parse(const std::vector<std::string>&) override;
-        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_command(int fd, Match&) override;
         std::string name_;
         bool append_;
         bool stdout_;
@@ -107,7 +102,7 @@ namespace logfind
     {
         Count();
         bool parse(const std::vector<std::string>&) override;
-        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_command(int fd, Match&) override;
         void on_exit(int fd);
         uint32_t count_;
         std::string format_;
@@ -118,7 +113,7 @@ namespace logfind
     {
         Interval();
         bool parse(const std::vector<std::string>&) override;
-        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_command(int fd, Match&) override;
         void on_exit(int fd);
         uint64_t lasttime_;
         std::string format_;
@@ -129,7 +124,7 @@ namespace logfind
     {
         Regex();
         bool parse(const std::vector<std::string>&) override;
-        void on_command(int fd, uint32_t lineno, linebuf& matching_line) override;
+        void on_command(int fd, Match&) override;
         void on_exit(int fd);
 
         std::regex regex_;

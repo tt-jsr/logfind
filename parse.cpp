@@ -2,6 +2,7 @@
 #include <sstream>
 #include <iostream>
 #include <assert.h>
+#include "buffer.h"
 #include "lru_cache.h"
 #include "aho_context.h"
 #include "file.h"
@@ -301,7 +302,6 @@ namespace logfind
             }
             ++tokIdx_;
         }
-        fp->build_trie();
     }
 
     void Parse::pattern_action(PatternActionsPtr pa)
@@ -359,7 +359,6 @@ namespace logfind
                     PatternActionsPtr pa = searchCmd->add_match_text(token.str.c_str(), token.str.size());
                     pattern_action(pa);
                     assert(tokens_[tokIdx_].tok == TOKEN_CLOSE_BRACE);
-                    searchCmd->build_trie();
                     ++tokIdx_;
                 }
                 break;

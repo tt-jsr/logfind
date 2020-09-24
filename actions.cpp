@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iterator>
 #include <regex>
+#include "buffer.h"
 #include "lru_cache.h"
 #include "aho_context.h"
 #include "file.h"
@@ -14,37 +15,19 @@
 #include "pattern_actions.h"
 #include "utilities.h"
 
+extern int on_match(int strnum, int textpos, void *v);
+extern void on_line(int textpos, void *v);
+
 namespace logfind
 {
-    uint32_t Action::get_match_pos()
-    {
-        return aho_match_->line_match_pos;
-    }
-
-    uint32_t Action::get_match_len()
-    {
-        return aho_match_->len;
-    }
-
     /*********************************************************************/
 
     bool After::parse(const std::vector<std::string>& args)
     {
     }
 
-    void After::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    void After::on_command(int fd, Match& match)
     {
-        linebuf lb;
-        uint32_t start = lineno;
-        uint32_t end = lineno+lines_;
-
-        for (uint32_t l = start; l < end; ++l)
-        {
-            pCtx_->readLine(l, lb);
-
-            dprintf(fd, "%s\n", lb.buf);
-            theApp->free(lb);
-        }
     }
 
     /*********************************************************************/
@@ -53,21 +36,8 @@ namespace logfind
     {
     }
 
-    void Before::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    void Before::on_command(int fd, Match& match)
     {
-        linebuf lb;
-        uint32_t start = lineno-lines_;
-        if (lines_ > lineno)
-            start = 0;
-        uint32_t end = lineno;
-
-        for (uint32_t l = start; l < end; ++l)
-        {
-            pCtx_->readLine(l, lb);
-
-            dprintf(fd, "%s\n", lb.buf);
-            theApp->free(lb);
-        }
     }
 
     /*********************************************************************/
@@ -193,12 +163,12 @@ namespace logfind
         return true;
     }
 
-    void Print::substitute(const char *&p, int fd, uint32_t lineno, linebuf& matchingline)
+    void Print::substitute(const char *&p, int fd, Match& match)
     {
         if (strncmp(p, "${1}", 4) == 0)  //${lineno}
         {
             char buf[32];
-            sprintf (buf, "%d", lineno);
+            sprintf (buf, "%d", match.lineno);
             write(fd, buf, strlen(buf));
             p += 4;
             return;
@@ -206,7 +176,8 @@ namespace logfind
         else if (strncmp(p, "${2}", 4) == 0)     // ${offset}
         {
             char buf[32];
-            sprintf (buf, "%d", aho_match_->line_match_pos);
+            sprintf (buf, "%d", match.match_offset_in_file);
+
             write(fd, buf, strlen(buf));
             p += 4;
             return;
@@ -214,21 +185,21 @@ namespace logfind
         else if (strncmp(p, "${3}", 4) == 0)     // ${line}
         {
             int start(line_start_), end(line_end_);
-            if (start > (int)matchingline.len)
+            if (start > (int)match.matched_line.len)
             {
-                start = (int)matchingline.len;
+                start = (int)match.matched_line.len;
             }
             if (start < 0)
             {
-                start = (int)matchingline.len + start;
+                start = (int)match.matched_line.len + start;
                 if (start < 0)
                     start = 0;
             }
-            if (end > (int)matchingline.len)
-                end = (int)matchingline.len;
+            if (end > (int)match.matched_line.len)
+                end = (int)match.matched_line.len;
             if (end < 0)
             {
-                end = (int)matchingline.len + end;
+                end = (int)match.matched_line.len + end;
                 if (end < 0)
                     end = 0;
             }
@@ -236,18 +207,18 @@ namespace logfind
                 start = end;
 
             int len = end-start;
-            write(fd, matchingline.buf+start, len);
+            write(fd, match.matched_line.buf+start, len);
             p += 4;
             return;
         }
 
         else if (strncmp(p, "${4}", 4) == 0)     // ${match}
         {
-            char *src = matchingline.buf+aho_match_->line_match_pos;
-            write(fd, src, aho_match_->len);
-            src += aho_match_->len;
+            const char *src = match.matched_text.c_str();
+            write(fd, src, match.matched_text.size());
+            src += match.matched_text.size();
             if (match_delim_ != '\0') {
-                while (*src && *src != match_delim_ && src < matchingline.buf+matchingline.len)
+                while (*src && *src != match_delim_ && src < match.matched_line.buf+match.matched_line.len)
                 {
                     write(fd, src, 1);
                     ++src;
@@ -255,7 +226,7 @@ namespace logfind
             }
             if (match_additional_) {
                 int n = match_additional_;
-                while (*src && n && src < matchingline.buf+matchingline.len)
+                while (*src && n && src < match.matched_line.buf+match.matched_line.len)
                 {
                     write(fd, src, 1);
                     ++src;
@@ -274,7 +245,7 @@ namespace logfind
         }
         else if (strncmp(p, "${6}", 4) == 0)     // ${time}
         {
-            uint64_t t = TTLOG2micros(matchingline.buf, matchingline.len);
+            uint64_t t = TTLOG2micros(match.matched_line.buf, match.matched_line.len);
             char buf[32];
             int r = sprintf(buf, "%ld", t);
             if (r)
@@ -326,11 +297,11 @@ namespace logfind
         }
     }
 
-    void Print::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    void Print::on_command(int fd, Match& match)
     {
         if (format_.empty())
         {
-            dprintf(fd, "%s\n", matchingline.buf);
+            dprintf(fd, "%s\n", match.matched_line.buf);
             return;
         }
         const char * p = format_.c_str();
@@ -338,7 +309,7 @@ namespace logfind
         {
             if (*p == '$' && *(p+1) == '{')
             {
-                substitute(p, fd, lineno, matchingline);
+                substitute(p, fd, match);
             }
             else if (*p == '\\' && *(p+1) == 'n')
             {
@@ -356,17 +327,45 @@ namespace logfind
     /*********************************************************************/
 
     LineSearch::LineSearch()
+    :acism_(nullptr)
+    ,pattv_(nullptr)
+    ,npatts_(0)
     {
         lineSearch_ = MakeAhoLineContext();
+    }
+
+    LineSearch::~LineSearch()
+    {
+        // prob should do some cleanup
     }
 
     bool LineSearch::parse(const std::vector<std::string>& args)
     {
     }
 
-    void LineSearch::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    void LineSearch::on_command(int fd, Match& match)
     {
-        lineSearch_->find(matchingline.buf, matchingline.len, aho_match_->lineno, aho_match_->line_position_in_file);
+        lineSearch_->matched_line_.assign(match.matched_line.buf, match.matched_line.len);
+        lineSearch_->matched_lineno_ = match.lineno;
+        if (acism_ == nullptr)
+        {
+            pattv_ = new MEMREF[lineSearch_->patterns_.size()];
+            npatts_ = lineSearch_->patterns_.size();
+            for (size_t i = 0; i < lineSearch_->patterns_.size(); i++)
+            {
+                (pattv_[i]).ptr = lineSearch_->patterns_[i].c_str();  // I am not copying here!
+                (pattv_[i]).len = lineSearch_->patterns_[i].size();
+            }
+
+            // Create the context
+            acism_ = acism_create(pattv_, lineSearch_->patterns_.size());
+        }
+        int state(0);
+        MEMREF block;
+        block.ptr = match.matched_line.buf;
+        block.len = match.matched_line.len;
+
+        (void)acism_more(acism_, block, (ACISM_ACTION*)::on_match, (ACISM_LINE*)::on_line, lineSearch_.get(), &state);
     }
 
     void LineSearch::on_exit(int fd)
@@ -382,11 +381,6 @@ namespace logfind
     PatternActionsPtr LineSearch::add_match_text(const char *p)
     {
         return lineSearch_->add_match_text(p);
-    }
-
-    void LineSearch::build_trie()
-    {
-        lineSearch_->build_trie();
     }
 
     /*********************************************************************/
@@ -419,7 +413,7 @@ namespace logfind
         return true;
     }
 
-    void MaxCount::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    void MaxCount::on_command(int fd, Match& match)
     {
         if (max_count_ == 0)
             return;     // disabled
@@ -437,7 +431,7 @@ namespace logfind
     {
     }
 
-    void Exit::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    void Exit::on_command(int fd, Match& match)
     {
         theApp->exit();
     }
@@ -493,7 +487,7 @@ namespace logfind
         return true;
     }
 
-    void Count::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    void Count::on_command(int fd, Match& match)
     {
         ++count_;
     }
@@ -541,7 +535,7 @@ namespace logfind
         return true;
     }
 
-    void File::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    void File::on_command(int fd, Match& match)
     {
         if (stdout_)
             pattern_actions_->fd_ = 1;
@@ -602,9 +596,9 @@ namespace logfind
         return true;
     }
 
-    void Interval::on_command(int fd, uint32_t lineno, linebuf& matchingline)
+    void Interval::on_command(int fd, Match& match)
     {
-        uint64_t ts = TTLOG2micros(matchingline.buf, matchingline.len);
+        uint64_t ts = TTLOG2micros(match.matched_line.buf, match.matched_line.len);
         if (lasttime_ == 0)
         {
             lasttime_ = ts;
@@ -641,10 +635,10 @@ namespace logfind
         return true;
     }
 
-    void Regex::on_command(int fd, uint32_t lineno, linebuf& matching_line)
+    void Regex::on_command(int fd, Match& m)
     {
         std::smatch match;
-        std::string line(matching_line.buf, matching_line.len);
+        std::string line(m.matched_line.buf, m.matched_line.len);
         if (std::regex_search(line, match, regex_))
         {
             if (match.size() == 1)

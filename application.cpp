@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include "buffer.h"
 #include "application.h"
 #include "linebuf.h"
 #include "lru_cache.h"
@@ -27,14 +28,14 @@ namespace logfind
         int id = pNamedPatternCtx_->getPatternId("!program-start!");
         if (id >= 0)
         {
-            struct aho_match_t m;
-            m.id = id;
-            m.line_match_pos = 0; 
-            m.file_match_pos = 0;
-            m.lineno = 0;
-            m.line_position_in_file = 0;
-            m.len = 15;
-            pNamedPatternCtx_->on_match(&m);
+            //struct aho_match_t m;
+            //m.id = id;
+            //m.line_match_pos = 0; 
+            //m.file_match_pos = 0;
+            //m.lineno = 0;
+            //m.line_position_in_file = 0;
+            //m.len = 15;
+            //pNamedPatternCtx_->on_match(&m);
         }
     }
 
@@ -43,14 +44,14 @@ namespace logfind
         int id = pNamedPatternCtx_->getPatternId("!program-end!");
         if (id >= 0)
         {
-            struct aho_match_t m;
-            m.id = id;
-            m.line_match_pos = 0; 
-            m.file_match_pos = 0;
-            m.lineno = 0;
-            m.line_position_in_file = 0;
-            m.len = 13;
-            pNamedPatternCtx_->on_match(&m);
+            //struct aho_match_t m;
+            //m.id = id;
+            //m.line_match_pos = 0; 
+            //m.file_match_pos = 0;
+            //m.lineno = 0;
+            //m.line_position_in_file = 0;
+            //m.len = 13;
+            //pNamedPatternCtx_->on_match(&m);
         }
     }
 
@@ -59,14 +60,14 @@ namespace logfind
         int id = pNamedPatternCtx_->getPatternId("!file-start!");
         if (id >= 0)
         {
-            struct aho_match_t m;
-            m.id = id;
-            m.line_match_pos = 0; 
-            m.file_match_pos = 0;
-            m.lineno = 0;
-            m.line_position_in_file = 0;
-            m.len = 15;
-            pNamedPatternCtx_->on_match(&m);
+            //struct aho_match_t m;
+            //m.id = id;
+            //m.line_match_pos = 0; 
+            //m.file_match_pos = 0;
+            //m.lineno = 0;
+            //m.line_position_in_file = 0;
+            //m.len = 15;
+            //pNamedPatternCtx_->on_match(&m);
         }
     }
 
@@ -75,14 +76,14 @@ namespace logfind
         int id = pNamedPatternCtx_->getPatternId("!file-end!");
         if (id >= 0)
         {
-            struct aho_match_t m;
-            m.id = id;
-            m.line_match_pos = 0; 
-            m.file_match_pos = 0;
-            m.lineno = 0;
-            m.line_position_in_file = 0;
-            m.len = 13;
-            pNamedPatternCtx_->on_match(&m);
+            //struct aho_match_t m;
+            //m.id = id;
+            //m.line_match_pos = 0; 
+            //m.file_match_pos = 0;
+            //m.lineno = 0;
+            //m.line_position_in_file = 0;
+            //m.len = 13;
+            //pNamedPatternCtx_->on_match(&m);
         }
     }
     void Application::exit()

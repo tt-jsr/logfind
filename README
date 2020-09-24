@@ -1,24 +1,33 @@
 Logfind
 
-
                              OVERVIEW
 
 Logfind provides similar functionality to grep -F (aka fgrep) and sed(1) programs.
 This was written to try to simplify searching through TT log files. It is capable of
 handling .gz files natively and has mechanisms for iterating through /var/log/debesys
-and /var/log/debesys/oldlogs in proper order if searching through multiple files.
+and /var/log/debesys/oldlogs in chronological order if searching through multiple files.
 
-In addition, if you know when to start your search, it can very quickly locate the
-correct file to start at and begin searching through the files from the given time 
-forward through newer files, or the given time backwards through older files.
+There are three different forms for this program: list, cat and search
 
-If using a script, you can define actions to be performed on each match. The most 
-useful is the 'print' action, with a multitude of print options. There are also some
-analysis actions implemented. You can also output line matches to any number of 
-output files to separate them if wanted.
+list 
+    Lists the logfiles giving thier starting and ending timestamps for the contents
+    of the files, as well as the duration and compressed/decompressed file size. 
 
-In addition to searching, there are options (--cat) to send to stdout a decompressed
-time range of the logs. You can also split a time range into multiple files.
+cat 
+    Will send to stdout a time range of the logs. Optionally, the output can be split
+    to multiple files.
+
+search 
+    Allows searching for strings in the logs.
+
+    If you know when to start your search, it can very quickly locate the
+    correct file to start at and begin searching through the files from the given time 
+    forward through newer files, or the given time backwards through older files.
+
+    If using a script, you can define actions to be performed on each match. The most 
+    useful is the 'print' action, with a multitude of print options. There are also some
+    analysis actions implemented. You can also output line matches to any number of 
+    output files to separate them if wanted.
 
 Logfind is also extensible in that additional actions can be easily implemented for customizing. 
 For instance, we could create an action to pretty print an ER, or maybe convert it to json.
@@ -26,85 +35,93 @@ For instance, we could create an action to pretty print an ER, or maybe convert 
 
                              SYNOPSYS
 
-logfind pattern pattern ... file[.gz]                                    (1)
-    Search for pattern(s) in a log file
+logfind list logfile [--locate time]
+    List the logfiles giving the starting and ending timestamps in the logs, the duration
+    of the logs and compressed/decompressed file size
 
-logfind --script scriptfile infile                                       (2)
-    Search for patterns using a script in a logfile
+    logfile
+        logfile will be used to generate a list of log files to be listed.
+        e.g. "OC_cme.log" will include "OC_cme.log" as well as all log rotations of
+        that logfile.
 
-logfind --logname logname [--script file] [--after spec | --before spec] [pattern ...]   (3)
-    Search for patterns in all logs with the ability to set a start time
-    and direction.
+    --locate time
+        If a timestamp (TTLOG format: "YYYY-MM-DD hh:mm:ss") is given, it will output the
+        name of the file containing that timestamp.
 
-logfind --cat start-time [--duration duration-time] [--split size] --logname logname     (5)
-    cat or split a time range of the logs
 
-logfind --list [--locate timestamp] --logname logname                     (6)
-    List information about each logfile
+logfind cat logfile [-1] timestamp duration [--split size]
+    Cat the contents of the log files.
+    -1
+        Interpret the logfile as the name of a log. If not specified, logname will
+        be used to generate a list of log files to be concatenated.
+        e.g. "OC_cme.log" will include "OC_cme.log" as well as all log rotations of
+        that logfile.
 
-(1) This is the simplist use of the program. It will search the given file
-    for multiple patterns similar to grep -F. You can use '-' for stdin
+    timestamp
+        The starting point of the cat. In TTLOG format "YYYY-MM-DD hh:mm:ss"
 
-(2) This specifies a script file to read remenisent of sed(1) syntax. 
+    duration
+        How much to cat. in "hh:mm:ss" format.
 
-(3) Using --logname will search all the log files in
-    /var/log/debesys and /var/log/debesys/oldlogs. 
-    --before will locate the correct file and then search from this point
-             to older, going backwards through the log files
-    --after will locate the proper file and start the search at this point
-            to newer, going forward though the log files.
+    --split size
+        split the output to files. The name of the files will be aa-xxxxx through zz-xxxxx.
+        The size is in megabytes.
 
-    If neither --before or --after is used, the files will be searched backwards 
-    from newest to oldest, until the user stops the search or there are no more 
-    files to search.
+logfind search logname [-1] [--script file] [--before spec] [--after spec] [pattern....]
+    Search the logfiles for a list of strings. Either the script file or one or more patterns
+    or both must be specified.
 
-    the --before and --after spec can take the following formats:
-        "YYYY-MM-DD hh:mm:ss"    # "2020-05-04 17:30:00" - TTLOG format in UTC
-        n:days                   # "4:days"              - n days ago
-        n:weeks                  # "2:weeks"             - n weeks ago
+    -1
+        Interpret the logfile as the name of a log. If not specified, logname will
+        be used to generate a list of log files to be searched.
+        e.g. "OC_cme.log" will include "OC_cme.log" as well as all log rotations of
+        that logfile.
 
-    --logname: The OC_cme.log is implied to be OC_cme.log*
+    --script file
+        The name of a script. See SCRIPT FILE below
 
-(5) Using --cat will send to stdout the log files.
-    start-time:    This sets the starting point of the log. It is in TTLOG format
-                   "YYYY-MM-DD hh:mm:ss"
-    duration-time: How much should be concatenated. Duration is "hh:mm:ss"
-                    
-    --split-size:  Split the output into multiple files. Size is in megabytes. The 
-                   name of the files will be:
-                   aa-<filename> through
-                   zz-<filename>.
+    --before spec
+    --after spec
+        The before and after options indicate the starting time for the search and the
+        direction. 
+        Before will search backwards in the logs from the starting point, and after will search
+        forward through the logs from the starting point.
+        
+        spec can be one of:
+            "YYYY-MM-DD hh:mm:ss"    # "2020-05-04 17:30:00" - TTLOG format in UTC
+            n:days                   # "4:days"              - n days ago
+            n:weeks                  # "2:weeks"             - n weeks ago
 
-                   The files will be written in the current directory
+    pattern...
+        One or more strings to search for. Can be used in conjunction with a script file.
 
-(6) --list: This is a helpful little command that will display the starting and ending times
-    of each logfile, the duration of the logfile as well as the size and approx decompressed size.
-    --locate: If a time (in TTLOG format) is given, it will output the name of the logfile
-              that contains that timestamp
 
 COMMAND LINE EXAMPLES
-        logfile bb77a423-f475-434b-a336-3bd09a32c464 OC_cme.log
+    search
+        logfile search OC_cme.log -1 bb77a423-f475-434b-a336-3bd09a32c464
            Search for the order in the given file
 
-        logfind --logname OC_cme.log bb77a423-f475-434b-a336-3bd09a32c464
+        logfind search OC_cme.log bb77a423-f475-434b-a336-3bd09a32c464
            Search for the order starting at the latest logfile and search through
            each older log in order
 
-        logfind --logname OC_cme.log --before "2020-09-10 03:22:00" bb77a423-f475-434b-a336-3bd09a32c464 "S T A R T"
+        logfind search OC_cme.log --before "2020-09-10 03:22:00" bb77a423-f475-434b-a336-3bd09a32c464 "S T A R T"
            Search for the order starting at the containing the given timestamp and search
            each older log in backward order. Also print any OC starts that may have happened
 
-        logfind --logname OC_cme.log --after "2020-09-10 03:22:00" bb77a423-f475-434b-a336-3bd09a32c464 "S T A R T"
+        logfind search OC_cme.log --after "2020-09-10 03:22:00" bb77a423-f475-434b-a336-3bd09a32c464 "S T A R T"
            Search for the order starting at the containing the given timestamp and search
            each newer log in forward order. Also print any OC starts that may have happened
 
-        logfind --cat "2020-08-09 17:30:00" --duration "00:30:00" --logname OC_cme.log
+    cat
+        logfind cat OC_cme.log "2020-08-09 17:30:00" "00:30:00" 
            Cat 30 minutes worth of logs starting at the given time
 
-        logfind --cat "2020-08-09 17:30:00" --duration "00:30:00" --split 100 --logname OC_cme.log
-           Split 30 minutes worth of logs starting at the given time, into 100MB sized files
+        logfind cat OC_cme.log "2020-08-09 17:30:00" "01:00:00" --split 100
+           Split 1 hour worth of logs starting at the given time, into 100MB sized files
 
-        logfind --list --locate "2020-07-04 03:00:10" --logname OC_cme.log
+    list
+        logfind list OC_cme.log --locate "2020-07-04 03:00:10" 
             Locate the logfile that contains the given timestamp
 
 
@@ -244,11 +261,11 @@ SPECIAL PATTERNS
 PERFORMANCE
     This program uses the aho-corasick algorithim for finding the pattern matches. With an 
     arbitrary number of patterns to search for, it is guaranteed to look at each input byte
-    only once, therefore it will run in linear time with the size of the file. The implementation
-    also does not break the input into lines but rather the pattern search is run against 
-    the entire input, only when a match is found are the bounding line endings located. The
-    input is backed by an LRU cache of 1MB pages with read ahead to support the 'before' and 
-    'after' actions.
+    only once, therefore it will run in linear time with the size of the file regardless of the 
+    number of search patterns. The implementation also does not break the input into lines 
+    but rather the pattern search is run against the entire input, only when a match is found 
+    are the bounding line endings located. The input is backed by an LRU cache of 1MB pages 
+    with read ahead to support the 'before' and 'after' actions.
 
     Each sub-pattern is run using a separate context for the algorithim. Again, running multiple
     pattern searches on a line match will run in linear time.
