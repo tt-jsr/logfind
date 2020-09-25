@@ -69,7 +69,7 @@ logfind cat logfile [-1] start-time end-time [--split size]
 
     --split size
         split the output to files. The name of the files will be aa-xxxxx through zz-xxxxx.
-        The size is in megabytes.
+        The size is in megabytes. Output will be written in the current directory.
 
 logfind search logname [-1] [--script file] [--before spec] [--after spec] [pattern....]
     Search the logfiles for a list of strings. Either the script file or one or more patterns
@@ -78,7 +78,7 @@ logfind search logname [-1] [--script file] [--before spec] [--after spec] [patt
     logfile
         logfile will be used to generate a list of log files to be listed.
         e.g. "OC_cme.log" will include "OC_cme.log" as well as all log rotations of
-        that logfile.
+        that logfile. '-' may be used to specify stdin.
 
     -1
         Interpret the logfile as the name of a log, do not include log rotations.
@@ -268,7 +268,7 @@ SPECIAL PATTERNS
     }
 
             
-PERFORMANCE
+ALGORITHIM
     This program uses the aho-corasick algorithim for finding the pattern matches. With an 
     arbitrary number of strings to search for, it is guaranteed to look at each input byte
     only once, therefore it will run in linear time with the size of the file regardless of the 
@@ -318,7 +318,7 @@ EXAMPLES
     I want an easy way to identify order id I'm looking for
         /bb77a423-f475-434b-a336-3bd09a32c464/ {
             /EXEC_TYPE_REPLACED/ {
-                print "REPLACE "
+                print "REPLACE "       # No new-line
             }
             /EXEC_TYPE_NEW/ {
                 print "NEW "
@@ -326,7 +326,7 @@ EXAMPLES
             /EXEC_TYPE_TRADE/ {
                 print "TRADE "
             }
-            print
+            print       # This will print on the same line as the other print's
         }
 
 
@@ -376,9 +376,9 @@ EXAMPLES
         }
 
 NOTES
-    See https://github.com/morenice/ahocorasick
+    See https://github.com/mischasan/aho-corasick
     for original aho-corasick algorithm code I stole.
 
-    I have not used flex/bison for the parser, but hand coded it. This will may change in the future
+    I have not used flex/bison for the parser, but hand coded it. This may change in the future
     but as of now, it is rather crude and sensitive to syntax errors and may crash if not correct.
 

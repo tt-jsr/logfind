@@ -12,7 +12,7 @@
 #include "list_cmd.h"
 #include "cat_cmd.h"
 
-static const char *version = ".2";
+static const char *version = ".3";
 
 void usage(std::ostream& strm)
 {
