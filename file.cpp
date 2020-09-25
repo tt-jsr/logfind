@@ -77,7 +77,7 @@ namespace logfind
         if (pBuf == nullptr)
         {
             theApp->alloc(lb);
-            strcpy(lb.buf, "<not found>");
+            strcpy(lb.buf, "logfind: buffer not in cache!");
             lb.len = strlen(lb.buf);
             return true;
         }
@@ -87,13 +87,13 @@ namespace logfind
 
     int ReadFile::read_()
     {
-        F_OFFSET offset; 
-        if (buffer_)
-            offset = buffer_->fileoffset() + BUFSIZE;
-        else
-            offset = 0;
         if (buffer_ == nullptr || buffer_->isFull())
         {
+            F_OFFSET offset; 
+            if (buffer_)
+                offset = buffer_->fileoffset() + BUFSIZE;
+            else
+                offset = 0;
             buffer_ = cache_.get_lru();
             buffer_->reset(offset);
             cache_.add(buffer_);
@@ -102,7 +102,9 @@ namespace logfind
         if (r <= 0)
             eof_ = true;
         if (r > 0)
+        {
             buffer_->incrementAvailableReadBytes((size_t)r);
+        }
         return r;
     }
 

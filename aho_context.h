@@ -79,6 +79,7 @@ namespace logfind
         F_OFFSET current_line_offset_;
         uint32_t current_lineno_;
         Buffer *current_buffer_;
+        B_OFFSET current_block_offset_;
         std::map<uint64_t, F_OFFSET> lines_; // lineno => fileoffset
     };
 

@@ -54,6 +54,7 @@ namespace logfind
         // Available bytes for reading
         size_t availableReadBytes();
         void incrementReadPosition(size_t);
+        B_OFFSET readBufferOffset();
 
         // Set the readPos via a pointer into the buffer
         bool setReadPos(const char *p);
@@ -63,6 +64,10 @@ namespace logfind
 
         // get the character at the current read position
         char getchar();
+
+        // get char at buffer offset. Return 0 if offset
+        // is greater then the amount of data in the buffer
+        char getchar(B_OFFSET);
 
         // Are we at the end of buffer for reading?, same as availableReadBytes() == 0
         bool eob();     // end of buffer

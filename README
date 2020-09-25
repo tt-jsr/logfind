@@ -230,7 +230,7 @@ ACTIONS
             such as "Number of matches: ${count}\n"
 
         interval "fmt"
-            Print the time since the last pattern match. The matched patterns must contain a TTLOG
+            Print the time since the last pattern match. The matched lines must contain a TTLOG
             timestamp. The output will print the number of days, hours, minutes, seconds, and microseconds.
             Format must contain a ${time} specifier to print the time, such as 
             "Elapsed time since last cxlrpl: ${time}\n"

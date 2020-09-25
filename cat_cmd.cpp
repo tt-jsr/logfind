@@ -16,7 +16,7 @@ namespace logfind
 {
     // Return the timestamp of the last line
     // readable in this buffer
-    uint64_t BufferTimestamp(Buffer *pBuffer)
+    uint64_t LastLineTimestamp(Buffer *pBuffer)
     {
         const char *p = pBuffer->writePos();
         const char *stop = pBuffer->readPos();
@@ -26,9 +26,33 @@ namespace logfind
             if (*p == '\n' && size > 26)
             {
                 ++p;
-                return TTLOG2micros(p, 26);
+                uint64_t t = TTLOG2micros(p, 26);
+                if (t)
+                    return t;
+                --p;
             }
             --p;
+            ++size;
+        }
+        return 0;
+    }
+
+    uint64_t FirstLineTimestamp(Buffer *pBuffer)
+    {
+        const char *p = pBuffer->readPos();
+        const char *stop = pBuffer->writePos();
+        int size(0);
+        while (p != stop)
+        {
+            if (*p == '\n' && (pBuffer->availableReadBytes()-size) > 26)
+            {
+                ++p;
+                uint64_t t = TTLOG2micros(p, 26);
+                if (t)
+                    return t;
+                --p;
+            }
+            ++p;
             ++size;
         }
         return 0;
@@ -116,7 +140,7 @@ namespace logfind
             Buffer *pBuffer = f.get_buffer();
             while (pBuffer)
             {
-                if (BufferTimestamp(pBuffer) > start)
+                if (LastLineTimestamp(pBuffer) > start)
                     break;
                 size_t size = pBuffer->availableReadBytes();
                 pBuffer->incrementReadPosition(size);
@@ -136,7 +160,7 @@ namespace logfind
 
             while (pBuffer)
             {
-                if (BufferTimestamp(pBuffer) > end)
+                if (FirstLineTimestamp(pBuffer) > end)
                     break;
                 uint32_t size = pBuffer->availableReadBytes();
                 if (split_size && split_count >= split_size)

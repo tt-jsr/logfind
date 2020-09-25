@@ -23,7 +23,7 @@ namespace logfind
 
     bool Buffer::containsFileOffset(F_OFFSET fileoffset)
     {
-        if (fileoffset >= offset_ && fileoffset < offset_ + datalen_)
+        if (fileoffset >= offset_ && fileoffset < (offset_ + datalen_))
             return true;
         return false;
     }
@@ -75,6 +75,13 @@ namespace logfind
         return buffer_[readpos_++];
     }
 
+    char Buffer::getchar(B_OFFSET off)
+    {
+        if (off >= datalen_)
+            return 0;
+        return buffer_[off];
+    }
+
     F_OFFSET Buffer::fileoffset()
     {
         return offset_;
@@ -88,6 +95,11 @@ namespace logfind
     size_t Buffer::availableReadBytes()           
     {
         return datalen_ - readpos_;
+    }
+
+    B_OFFSET Buffer::readBufferOffset()
+    {
+        return readpos_;
     }
 
     bool Buffer::setReadPos(const char *p)

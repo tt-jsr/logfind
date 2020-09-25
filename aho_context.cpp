@@ -135,6 +135,7 @@ namespace logfind
             MEMREF block;
             block.ptr = current_buffer_->readPos();
             block.len = current_buffer_->availableReadBytes();
+            current_block_offset_ = current_buffer_->readBufferOffset();
 
             (void)acism_more(acism_, block, (ACISM_ACTION*)::on_match, (ACISM_LINE*)::on_line, this, &state);
             current_buffer_->incrementReadPosition((size_t)block.len);
@@ -145,6 +146,8 @@ namespace logfind
 
     void AhoFileContext::matchData(Match& m, B_OFFSET matchpos)
     {
+        matchpos = current_block_offset_ + matchpos;
+        assert(current_buffer_->getchar(matchpos) == m.matched_text[0]);
         file.readLine(current_line_offset_, m.matched_line);
         m.line_offset_in_file = current_line_offset_;
         m.match_offset_in_file = matchpos + current_buffer_->fileoffset();
@@ -154,6 +157,8 @@ namespace logfind
 
     void AhoFileContext::on_line(B_OFFSET textpos)
     {
+        textpos = current_block_offset_ + textpos;
+        assert(current_buffer_->getchar(textpos) == '\n');
         current_line_offset_ = current_buffer_->fileoffset() + textpos + 1;
         ++current_lineno_;
         lines_.emplace(current_lineno_, current_line_offset_);

@@ -12,7 +12,7 @@
 #include "list_cmd.h"
 #include "cat_cmd.h"
 
-static const char *version = ".1";
+static const char *version = ".2";
 
 void usage(std::ostream& strm)
 {
@@ -274,7 +274,6 @@ int main(int argc, char ** argv)
         std::string start_time;
         std::string end_time;
         int parg = 0;
-        ++parg;
 
         if (parg >= positional_args.size())
         {
@@ -289,7 +288,6 @@ int main(int argc, char ** argv)
             return 1;
         }
         end_time = positional_args[parg];
-        ++parg;
 
         if (logfind::cat_cmd(logname, start_time, end_time, split) == false)
         {
@@ -335,16 +333,15 @@ int main(int argc, char ** argv)
     }
 
     std::vector<logfind::FileInfo> filesToProcess;
-    if (!dash_1)
-    {
-
-        logfind::GetFilesToProcess(logname, timestamp, bBefore, filesToProcess);
-    }
-    else
+    if (dash_1)
     {
         logfind::FileInfo fi;
         fi.filepath = logname;
         filesToProcess.push_back(fi);
+    }
+    else
+    {
+        logfind::GetFilesToProcess(logname, timestamp, bBefore, filesToProcess);
     }
 
     app.on_start();
