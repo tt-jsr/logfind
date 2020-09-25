@@ -221,6 +221,9 @@ int main(int argc, char ** argv)
         }
     }
 
+    if (logname == "-")
+        dash_1 = true;
+
     if (list)
     {
         if (cat)
@@ -236,6 +239,11 @@ int main(int argc, char ** argv)
         if (logname.empty())
         {
             std::cerr << "--list requires --logname" << std::endl;
+            return 1;
+        }
+        if (logname == "-")
+        {
+            std::cerr << "--list cannot be used with stdin" << std::endl;
             return 1;
         }
         if (dash_1)
@@ -314,24 +322,6 @@ int main(int argc, char ** argv)
     // Add any additional patterns that might have been on the command line
     AddPatterns(app, positional_args);
 
-    uint64_t timestamp(0);
-    bool bBefore(false);
-    if (!before.empty())
-    {
-        bBefore = true;
-        timestamp = logfind::TimespecToMicros(before);
-    }
-    else if (!after.empty())
-    {
-        bBefore = false;
-        timestamp = logfind::TimespecToMicros(after);
-    }
-    else
-    {
-        bBefore = true;
-        timestamp = logfind::GetCurrentTimeMicros();
-    }
-
     std::vector<logfind::FileInfo> filesToProcess;
     if (dash_1)
     {
@@ -341,6 +331,23 @@ int main(int argc, char ** argv)
     }
     else
     {
+        uint64_t timestamp(0);
+        bool bBefore(false);
+        if (!before.empty())
+        {
+            bBefore = true;
+            timestamp = logfind::TimespecToMicros(before);
+        }
+        else if (!after.empty())
+        {
+            bBefore = false;
+            timestamp = logfind::TimespecToMicros(after);
+        }
+        else
+        {
+            bBefore = true;
+            timestamp = logfind::GetCurrentTimeMicros();
+        }
         logfind::GetFilesToProcess(logname, timestamp, bBefore, filesToProcess);
     }
 

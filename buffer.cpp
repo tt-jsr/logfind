@@ -92,6 +92,16 @@ namespace logfind
         return bufsize_-datalen_;
     }
 
+    bool Buffer::truncate(const char *endPos)
+    {
+        if (endPos < buffer_ || endPos >= (buffer_+datalen_))
+            return false;
+        datalen_ = endPos - buffer_;
+        if (readpos_ > datalen_)
+            readpos_ = datalen_;
+        return true;
+    }
+
     size_t Buffer::availableReadBytes()           
     {
         return datalen_ - readpos_;
@@ -104,7 +114,7 @@ namespace logfind
 
     bool Buffer::setReadPos(const char *p)
     {
-        if (p < buffer_ || p >= &buffer_[datalen_])
+        if (p < buffer_ || p >= (buffer_+datalen_))
             return false;
         readpos_ = p - buffer_;
         return true;

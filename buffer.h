@@ -41,6 +41,7 @@ namespace logfind
         // Available bytes for writing
         size_t availableWriteBytes();
         void incrementAvailableReadBytes(size_t n);
+        bool truncate(const char *endPos);
 
         // Get a pointer to write to, with the available number of bytes
         char *writePos();

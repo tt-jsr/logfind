@@ -37,6 +37,7 @@ namespace logfind
         return 0;
     }
 
+    /* not used
     uint64_t FirstLineTimestamp(Buffer *pBuffer)
     {
         const char *p = pBuffer->readPos();
@@ -56,6 +57,37 @@ namespace logfind
             ++size;
         }
         return 0;
+    }
+    */
+
+    // begin == true to locate the spot where the timestamp start,
+    // false to locate where the timestamp ends
+    void SeekOrTruncate(Buffer *pBuffer, uint64_t timestamp, bool seek)
+    {
+        const char *p = pBuffer->readPos();
+        const char *stop = pBuffer->writePos();
+        int size(0);
+        while (p != stop)
+        {
+            if (*p == '\n' && (pBuffer->availableReadBytes()-size) > 26)
+            {
+                ++p;
+                uint64_t t = TTLOG2micros(p, 26);
+                if (seek && t > timestamp)
+                {
+                    pBuffer->setReadPos(p);
+                    return;
+                }
+                if (!seek && t > timestamp)
+                {
+                    pBuffer->truncate(p);
+                    return;
+                }
+                --p;
+            }
+            ++p;
+            ++size;
+        }
     }
 
     const char *FirstLineInBuffer(Buffer *pBuffer)
@@ -147,6 +179,8 @@ namespace logfind
                 pBuffer = f.get_buffer();
             }
 
+            SeekOrTruncate(pBuffer, start, true);
+
             // Now start outputting
             const char *p = FirstLineInBuffer(pBuffer);
             if (p)
@@ -158,10 +192,15 @@ namespace logfind
                 epos = fi.filepath.size();
             std::string split_base_filename = fi.filepath.substr(pos+1, epos-(pos+1));
 
+            bool lastBuffer(false);
             while (pBuffer)
             {
-                if (FirstLineTimestamp(pBuffer) > end)
-                    break;
+                if (LastLineTimestamp(pBuffer) > end)
+                {
+                    SeekOrTruncate(pBuffer, end, false);
+                    lastBuffer = true;
+                }
+
                 uint32_t size = pBuffer->availableReadBytes();
                 if (split_size && split_count >= split_size)
                 {
@@ -180,6 +219,12 @@ namespace logfind
                 write(fd, pBuffer->readPos(), size);
                 split_count += size;
                 pBuffer->incrementReadPosition(size);
+                if (lastBuffer)
+                {
+                    if (fd != 1)
+                        close(fd);
+                    return true;
+                }
                 pBuffer = f.get_buffer();
             }
         }
