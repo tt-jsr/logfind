@@ -14,9 +14,78 @@
 
 static const char *version = ".1";
 
-void usage()
+void usage(std::ostream& strm)
 {
-    std::cerr << "usage: " << std::endl;
+    strm << "usage: " << std::endl;
+    strm << "logfind list logfile [--locate time]" << std::endl;
+    strm << "    List the logfiles giving the starting and ending timestamps in the logs, the duration" << std::endl;
+    strm << "    of the logs and compressed/decompressed file size" << std::endl;
+    strm << "" << std::endl;
+    strm << "    logfile" << std::endl;
+    strm << "        logfile will be used to generate a list of log files to be listed." << std::endl;
+    strm << "        e.g. \"OC_cme.log\" will include \"OC_cme.log\" as well as all log rotations of" << std::endl;
+    strm << "        that logfile." << std::endl;
+    strm << "" << std::endl;
+    strm << "    --locate time" << std::endl;
+    strm << "        If a timestamp (TTLOG format: \"YYYY-MM-DD hh:mm:ss\") is given, it will output the" << std::endl;
+    strm << "        name of the file containing that timestamp." << std::endl;
+    strm << "" << std::endl;
+    strm << "" << std::endl;
+    strm << "logfind cat logfile [-1] start-time end-time [--split size]" << std::endl;
+    strm << "    Cat the contents of the log files." << std::endl;
+    strm << "" << std::endl;
+    strm << "    logfile" << std::endl;
+    strm << "        logfile will be used to generate a list of log files to be listed." << std::endl;
+    strm << "        e.g. \"OC_cme.log\" will include \"OC_cme.log\" as well as all log rotations of" << std::endl;
+    strm << "        that logfile." << std::endl;
+    strm << "" << std::endl;
+    strm << "    -1" << std::endl;
+    strm << "        Interpret the logfile as the name of a log, do not include log rotations." << std::endl;
+    strm << "" << std::endl;
+    strm << "    start-time" << std::endl;
+    strm << "        Start cat at the given time, in TTLOG format: \"YYYY-MM-DD hh:mm:ss\"" << std::endl;
+    strm << "" << std::endl;
+    strm << "    end-time" << std::endl;
+    strm << "        Stop the cat at the given time." << std::endl;
+    strm << "        end-time may be \"YYYY-MM-DD hh:mm:ss\" or  duration \"hh:mm:ss\" relative to start-time" << std::endl;
+    strm << "" << std::endl;
+    strm << "    --split size" << std::endl;
+    strm << "        split the output to files. The name of the files will be aa-xxxxx through zz-xxxxx." << std::endl;
+    strm << "        The size is in megabytes." << std::endl;
+    strm << "" << std::endl;
+    strm << "logfind search logname [-1] [--script file] [--before spec] [--after spec] [pattern....]" << std::endl;
+    strm << "    Search the logfiles for a list of strings. Either the script file or one or more patterns" << std::endl;
+    strm << "    or both must be specified." << std::endl;
+    strm << "" << std::endl;
+    strm << "    logfile" << std::endl;
+    strm << "        logfile will be used to generate a list of log files to be listed." << std::endl;
+    strm << "        e.g. \"OC_cme.log\" will include \"OC_cme.log\" as well as all log rotations of" << std::endl;
+    strm << "        that logfile." << std::endl;
+    strm << "" << std::endl;
+    strm << "    -1" << std::endl;
+    strm << "        Interpret the logfile as the name of a log, do not include log rotations." << std::endl;
+    strm << "" << std::endl;
+    strm << "    -s" << std::endl;
+    strm << "    --script file" << std::endl;
+    strm << "        The name of a script. See SCRIPT FILE below" << std::endl;
+    strm << "" << std::endl;
+    strm << "    -b" << std::endl;
+    strm << "    --before spec" << std::endl;
+    strm << "" << std::endl;
+    strm << "    -a" << std::endl;
+    strm << "    --after spec" << std::endl;
+    strm << "        The before and after options indicate the starting time for the search and the" << std::endl;
+    strm << "        direction. " << std::endl;
+    strm << "        Before will search backwards in the logs from the starting point, and after will search" << std::endl;
+    strm << "        forward through the logs from the starting point." << std::endl;
+    strm << "        " << std::endl;
+    strm << "        spec can be one of:" << std::endl;
+    strm << "            \"YYYY-MM-DD hh:mm:ss\"    # \"2020-05-04 17:30:00\" - TTLOG format in UTC" << std::endl;
+    strm << "            n:days                   # \"4:days\"              - n days ago" << std::endl;
+    strm << "            n:weeks                  # \"2:weeks\"             - n weeks ago" << std::endl;
+    strm << "" << std::endl;
+    strm << "    pattern..." << std::endl;
+    strm << "        One or more strings to search for. Can be used in conjunction with a script file." << std::endl;
 }
 
 void AddPatterns(logfind::Application& app, std::vector<std::string>& patterns)
@@ -46,7 +115,7 @@ int main(int argc, char ** argv)
 
     if (argc == 1)
     {
-        usage();
+        usage(std::cout);
         return 0;
     }
     if (strcmp (argv[1], "cat") == 0)
@@ -55,38 +124,33 @@ int main(int argc, char ** argv)
         list = true;
     else if (strcmp (argv[1], "search") == 0)
         search = true;
-    else if (strcmp (argv[1], "--help") == 0)
+    else if (strcmp (argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)
     {
-        usage();
+        usage(std::cout);
         return 0;
     }
     else
     {
         std::cerr << "Unknown command " <<argv[1] << std::endl;
-        usage();
+        usage(std::cerr);
         return 1;
     }
 
     if (argc < 3)
     {
-        usage();
+        usage(std::cerr);
         return 0;
     }
     logname = argv[2];
 
     for (int a = 3; a < argc; ++a)
     {
-        if (strcmp (argv[a], "--help") == 0 || strcmp(argv[a], "-h") == 0)
-        {
-            usage();
-            return 0;
-        }
-        else if (strcmp (argv[a], "--script") == 0 || strcmp(argv[a], "-s") == 0)
+       if (strcmp (argv[a], "--script") == 0 || strcmp(argv[a], "-s") == 0)
        {
             ++a;
             if (a == argc)
             {
-                usage();
+                usage(std::cerr);
                 std::cout << "--script requires filename" << std::endl;
                 return 1;
             }
@@ -97,7 +161,7 @@ int main(int argc, char ** argv)
             ++a;
             if (a == argc)
             {
-                usage();
+                usage(std::cerr);
                 std::cout << "--split requires filename" << std::endl;
                 return 1;
             }
@@ -108,7 +172,7 @@ int main(int argc, char ** argv)
             ++a;
             if (a == argc)
             {
-                usage();
+                usage(std::cerr);
                 std::cout << "--before requires time spec" << std::endl;
                 return 1;
             }
@@ -119,7 +183,7 @@ int main(int argc, char ** argv)
             ++a;
             if (a == argc)
             {
-                usage();
+                usage(std::cerr);
                 std::cout << "--after requires time spec" << std::endl;
                 return 1;
             }
@@ -130,7 +194,7 @@ int main(int argc, char ** argv)
             ++a;
             if (a == argc)
             {
-                usage();
+                usage(std::cerr);
                 std::cout << "--locate requires time" << std::endl;
                 return 1;
             }
@@ -148,7 +212,7 @@ int main(int argc, char ** argv)
         else if (argv[a][0] == '-')
         {
             std::cerr << "Unknown argument: " << argv[a] << std::endl;
-            usage();
+            usage(std::cerr);
             return 0;
         }
         else
@@ -203,7 +267,7 @@ int main(int argc, char ** argv)
         if (positional_args.size() == 0)
         {
             std::cerr << "cat requires a starting time" << std::endl;
-            usage();
+            usage(std::cerr);
             return 1;
         }
         
