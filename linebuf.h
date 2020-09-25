@@ -15,7 +15,7 @@ namespace logfind
     struct linebuf
     {
         linebuf()
-        :buf(nullptr), len(0), bufsize(0), flags(LINEBUF_INVALID)
+        :buf(nullptr), len(0), bufsize(0), flags(LINEBUF_NONE)
         {}
         char *buf;
         uint32_t len;

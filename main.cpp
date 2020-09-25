@@ -16,32 +16,7 @@ static const char *version = ".1";
 
 void usage()
 {
-    std::cerr << "\
-       usage: logfind pattern ... searchFile \
-             Find patterns in the given searchFile \
-\
-       logfind --script file --logname name [--after spec][--before spec] [pattern pattern...] \
-             Run a script for pattern matching. \
-             --logname: The name of the logfile (e.g. OC_cme.log). This will search all logs in. \
-                        /var/log/debesys and /var/log/debesys/oldlogs in chronological order. \
-             --after spec: Provide a starting time and search logs after this date-time. \
-             --before spec: Provide a starting time and search logs before this date-time. \
-                            spec is TTLOG format \"YYYY-MM-DD hh:mm:ss\" \
-                                    n:days \
-                                    n:weeks \
-\
-       logfind --list --logname name [--locate datetime] \
-             List the log files. \
-             --locate: locate the logfile that contains the datetime in TTLOG format \"YYYY-MM-DD hh:mm:ss\". \
-\
-       logfind --cat datetime --logname name [--duration hh:mm::s][--split n] \
-             Concatenate a time range of the logfiles. \
-             --duration: The time rangle of logs to output, in hh:mm:ss format. \
-             --split size: Split the files in size MB chunks. \
-                           Filenames will be aa-filename through zz-filename. \
-\
-       logfind --version \
-";
+    std::cerr << "usage: " << std::endl;
 }
 
 void AddPatterns(logfind::Application& app, std::vector<std::string>& patterns)
@@ -56,28 +31,58 @@ void AddPatterns(logfind::Application& app, std::vector<std::string>& patterns)
 
 int main(int argc, char ** argv)
 {
+    bool cat(false);
+    bool list(false);
+    bool search(false);
+    bool dash_1(false);
+
     std::string script;
-    std::string infile;
-    std::vector<std::string> nodash;
+    std::vector<std::string> positional_args;
     std::string logname;
     std::string before;
     std::string after;
     std::string locate;
-    std::string cat;
-    std::string duration;
     std::string split;
-    uint64_t timestamp(0);
-    bool list(false);
 
-    for (int a = 1; a < argc; ++a)
+    if (argc == 1)
+    {
+        usage();
+        return 0;
+    }
+    if (strcmp (argv[1], "cat") == 0)
+        cat = true;
+    else if (strcmp (argv[1], "list") == 0)
+        list = true;
+    else if (strcmp (argv[1], "search") == 0)
+        search = true;
+    else if (strcmp (argv[1], "--help") == 0)
+    {
+        usage();
+        return 0;
+    }
+    else
+    {
+        std::cerr << "Unknown command " <<argv[1] << std::endl;
+        usage();
+        return 1;
+    }
+
+    if (argc < 3)
+    {
+        usage();
+        return 0;
+    }
+    logname = argv[2];
+
+    for (int a = 3; a < argc; ++a)
     {
         if (strcmp (argv[a], "--help") == 0 || strcmp(argv[a], "-h") == 0)
         {
             usage();
             return 0;
         }
-        else if (strcmp (argv[a], "--script") == 0)
-        {
+        else if (strcmp (argv[a], "--script") == 0 || strcmp(argv[a], "-s") == 0)
+       {
             ++a;
             if (a == argc)
             {
@@ -86,39 +91,6 @@ int main(int argc, char ** argv)
                 return 1;
             }
             script = argv[a];
-        }
-        else if (strcmp (argv[a], "--logname") == 0)
-        {
-            ++a;
-            if (a == argc)
-            {
-                usage();
-                std::cout << "--logname requires filename" << std::endl;
-                return 1;
-            }
-            logname = argv[a];
-        }
-        else if (strcmp (argv[a], "--cat") == 0)
-        {
-            ++a;
-            if (a == argc)
-            {
-                usage();
-                std::cout << "--cat requires filename" << std::endl;
-                return 1;
-            }
-            cat = argv[a];
-        }
-        else if (strcmp (argv[a], "--duration") == 0)
-        {
-            ++a;
-            if (a == argc)
-            {
-                usage();
-                std::cout << "--duration requires filename" << std::endl;
-                return 1;
-            }
-            duration = argv[a];
         }
         else if (strcmp (argv[a], "--split") == 0)
         {
@@ -131,7 +103,7 @@ int main(int argc, char ** argv)
             }
             split = argv[a];
         }
-        else if (strcmp (argv[a], "--before") == 0)
+        else if (strcmp (argv[a], "--before") == 0 || strcmp(argv[a], "-b") == 0)
         {
             ++a;
             if (a == argc)
@@ -142,7 +114,7 @@ int main(int argc, char ** argv)
             }
             before = argv[a];
         }
-        else if (strcmp (argv[a], "--after") == 0)
+        else if (strcmp (argv[a], "--after") == 0 || strcmp(argv[a], "-a") == 0)
         {
             ++a;
             if (a == argc)
@@ -164,18 +136,14 @@ int main(int argc, char ** argv)
             }
             locate = argv[a];
         }
-        else if (strcmp (argv[a], "--list") == 0)
+        else if (strcmp (argv[a], "-1") == 0)
         {
-            list = true;
+            dash_1 = true;
         }
         else if (strcmp (argv[a], "--version") == 0 || strcmp(argv[a], "-v") == 0)
         {
             std::cerr << version << std::endl;
             return 0;
-        }
-        else if (strcmp (argv[a], "-") == 0)
-        {
-            infile = "-";
         }
         else if (argv[a][0] == '-')
         {
@@ -185,13 +153,13 @@ int main(int argc, char ** argv)
         }
         else
         {
-            nodash.push_back(std::string(argv[a]));
+            positional_args.push_back(std::string(argv[a]));
         }
     }
 
     if (list)
     {
-        if (!cat.empty())
+        if (cat)
         {
             std::cerr << "--cat and --list cannot be used together" << std::endl;
             return 1;
@@ -206,17 +174,21 @@ int main(int argc, char ** argv)
             std::cerr << "--list requires --logname" << std::endl;
             return 1;
         }
+        if (dash_1)
+            std::cerr << "-1 will be ignored" << std::endl;
+        if (logname == "-")
+        {
+            std::cerr << "stdin not allowed for list" << std::endl;
+            return 1;
+        }
+        if (locate.empty() && positional_args.size())
+            locate = positional_args[0];
         logfind::list_cmd(logname, locate);
         return 0;
     }
 
-    if (!cat.empty())
+    if (cat)
     {
-        if (logname.empty())
-        {
-            std::cerr << "--cat requires --logname" << std::endl;
-            return 1;
-        }
         if (list)
         {
             std::cerr << "--cat and --list cannot be used together" << std::endl;
@@ -227,32 +199,41 @@ int main(int argc, char ** argv)
             std::cerr << "--cat and --script cannot be used together" << std::endl;
             return 1;
         }
-        if (logfind::cat_cmd(logname, cat, duration, split) == false)
+
+        if (positional_args.size() == 0)
+        {
+            std::cerr << "cat requires a starting time" << std::endl;
+            usage();
+            return 1;
+        }
+        
+        std::string start_time;
+        std::string end_time;
+        int parg = 0;
+        ++parg;
+
+        if (parg >= positional_args.size())
+        {
+            std::cerr << "cat must have a start time" << std::endl;
+            return 1;
+        }
+        start_time = positional_args[parg];
+        ++parg;
+        if (parg >= positional_args.size())
+        {
+            std::cerr << "cat must have a end time" << std::endl;
+            return 1;
+        }
+        end_time = positional_args[parg];
+        ++parg;
+
+        if (logfind::cat_cmd(logname, start_time, end_time, split) == false)
         {
             std::cerr << "--cat, invalid arguments" << std::endl;
             return 1;
         }
         return 0;
     }
-
-    if ((!before.empty() || !after.empty()) && logname.empty())
-    {
-        std::cerr << "--before or --after requires --logname" << std::endl;
-        return 1;
-    }
-
-    if (nodash.size() == 1)
-    {
-        infile = nodash[0];
-    }
-    if (nodash.size() > 1)
-    {
-        infile = nodash.back();
-        nodash.pop_back();
-    }
-
-    if (infile.empty())
-        infile = "-";
 
     // Instantiate the app
     logfind::Application app;
@@ -269,43 +250,39 @@ int main(int argc, char ** argv)
     }
 
     // Add any additional patterns that might have been on the command line
-    AddPatterns(app, nodash);
+    AddPatterns(app, positional_args);
+
+    uint64_t timestamp(0);
+    bool bBefore(false);
+    if (!before.empty())
+    {
+        bBefore = true;
+        timestamp = logfind::TimespecToMicros(before);
+    }
+    else if (!after.empty())
+    {
+        bBefore = false;
+        timestamp = logfind::TimespecToMicros(after);
+    }
+    else
+    {
+        bBefore = true;
+        timestamp = logfind::GetCurrentTimeMicros();
+    }
 
     std::vector<logfind::FileInfo> filesToProcess;
-    if (!logname.empty())
+    if (!dash_1)
     {
-        bool bBefore(false);
-        if (!before.empty())
-        {
-            bBefore = true;
-            timestamp = logfind::TimespecToMicros(before);
-        }
-        else if (!after.empty())
-        {
-            bBefore = false;
-            timestamp = logfind::TimespecToMicros(after);
-        }
-        else
-        {
-            bBefore = true;
-            timestamp = logfind::GetCurrentTimeMicros();
-        }
 
         logfind::GetFilesToProcess(logname, timestamp, bBefore, filesToProcess);
     }
     else
     {
         logfind::FileInfo fi;
-        fi.filepath = infile;
+        fi.filepath = logname;
         filesToProcess.push_back(fi);
     }
 
-    //for (auto& fi : filesToProcess)
-    //{
-        //std::cerr << "===JSR " << fi.filepath << std::endl;
-    //}
-
-    // let'r rip...
     app.on_start();
     for (auto& fi : filesToProcess)
     {

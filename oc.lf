@@ -3,6 +3,10 @@
 # events.
 #
 
+/!file-start!/ {
+    print "Starting ${filename}\n"
+}
+
 # OC was started
 /S T A R T I N G/ {
     print
@@ -85,7 +89,7 @@
 }
 
 # Print all errors
-/| ERROR |/ {
-    print
-}
+#/| ERROR |/ {
+    #print
+#}
 

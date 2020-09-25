@@ -1,4 +1,6 @@
 #include <cstdint>
+#include <assert.h>
+#include <string.h>
 #include "application.h"
 #include "linebuf.h"
 #include "buffer.h"
@@ -37,6 +39,13 @@ namespace logfind
     {
         theApp->alloc(lb);
         B_OFFSET bufpos = getBufferOffsetFromFileOffset(fileoffset);
+        assert(bufpos >= 0);
+        if (bufpos < 0)
+        {
+            strcpy(lb.buf, "Logfine error: buffer not found!\n");
+            lb.len = strlen(lb.buf);
+            return true;
+        }
         const char *p = buffer_ + bufpos;
         size_t count = bufpos;
         char *dest = lb.buf;

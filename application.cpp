@@ -9,6 +9,7 @@
 #include "linebuf.h"
 #include "lru_cache.h"
 #include "aho_context.h"
+#include "pattern_actions.h"
 #include <assert.h>
 
 namespace logfind
@@ -25,67 +26,44 @@ namespace logfind
 
     void Application::on_start()
     {
-        int id = pNamedPatternCtx_->getPatternId("!program-start!");
-        if (id >= 0)
+        PatternActionsPtr pa = pNamedPatternCtx_->getPatternActions("!program-start!");
+        if (pa)
         {
-            //struct aho_match_t m;
-            //m.id = id;
-            //m.line_match_pos = 0; 
-            //m.file_match_pos = 0;
-            //m.lineno = 0;
-            //m.line_position_in_file = 0;
-            //m.len = 15;
-            //pNamedPatternCtx_->on_match(&m);
+            Match m;
+            pa->on_match(m);
         }
     }
 
     void Application::on_exit()
     {
-        int id = pNamedPatternCtx_->getPatternId("!program-end!");
-        if (id >= 0)
+        PatternActionsPtr pa = pNamedPatternCtx_->getPatternActions("!program-end!");
+        if (pa)
         {
-            //struct aho_match_t m;
-            //m.id = id;
-            //m.line_match_pos = 0; 
-            //m.file_match_pos = 0;
-            //m.lineno = 0;
-            //m.line_position_in_file = 0;
-            //m.len = 13;
-            //pNamedPatternCtx_->on_match(&m);
+            Match m;
+            pa->on_match(m);
         }
     }
 
     void Application::on_file_start(const char *fname)
     {
-        int id = pNamedPatternCtx_->getPatternId("!file-start!");
-        if (id >= 0)
+        PatternActionsPtr pa = pNamedPatternCtx_->getPatternActions("!file-start!");
+        if (pa)
         {
-            //struct aho_match_t m;
-            //m.id = id;
-            //m.line_match_pos = 0; 
-            //m.file_match_pos = 0;
-            //m.lineno = 0;
-            //m.line_position_in_file = 0;
-            //m.len = 15;
-            //pNamedPatternCtx_->on_match(&m);
+            Match m;
+            pa->on_match(m);
         }
     }
 
     void Application::on_file_end(const char *fname)
     {
-        int id = pNamedPatternCtx_->getPatternId("!file-end!");
-        if (id >= 0)
+        PatternActionsPtr pa = pNamedPatternCtx_->getPatternActions("!file-end!");
+        if (pa)
         {
-            //struct aho_match_t m;
-            //m.id = id;
-            //m.line_match_pos = 0; 
-            //m.file_match_pos = 0;
-            //m.lineno = 0;
-            //m.line_position_in_file = 0;
-            //m.len = 13;
-            //pNamedPatternCtx_->on_match(&m);
+            Match m;
+            pa->on_match(m);
         }
     }
+
     void Application::exit()
     {
         exit_flag = true;

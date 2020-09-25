@@ -27,6 +27,14 @@ namespace logfind
 
     struct Match
     {
+        Match()
+        :line_offset_in_file(0)
+        ,match_offset_in_file(0)
+        ,match_offset_in_line(0)
+        ,lineno(0)
+        ,searchCtx(nullptr)
+        {}
+
         linebuf matched_line;       // The line with the match
         std::string matched_text;   // The matched text
         F_OFFSET line_offset_in_file;              // The offset into the file for the line
@@ -43,7 +51,7 @@ namespace logfind
         virtual ~AhoContext();
         PatternActionsPtr add_match_text(const char *p, uint32_t len);
         PatternActionsPtr add_match_text(const char *p);
-        int getPatternId(const char *);
+        PatternActionsPtr getPatternActions(const char *);
         int on_match(int strnum, B_OFFSET textpos);
         virtual void on_line(B_OFFSET linepos) {};
         virtual void matchData(Match& m, B_OFFSET matchpos) = 0;

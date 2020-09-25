@@ -191,9 +191,6 @@ namespace logfind
     uint64_t HMS2micros(const char *time, uint32_t len)
     {
         //17:03:45
-        // very basic validation
-        if (*(time+2) != ':' || *(time+5) != ':' )
-            return 0;
 
         uint64_t hour(0);
         uint64_t min(0);

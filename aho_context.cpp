@@ -36,14 +36,19 @@ namespace logfind
         delete[] pattv_;
     }
 
-    int AhoContext::getPatternId(const char *p)
+    PatternActionsPtr AhoContext::getPatternActions(const char *p)
     {
         for (size_t i = 0; i < patterns_.size(); i++)
         {
             if (strcmp(patterns_[i].c_str(), p) == 0)
-                return i;
+            {
+                auto it = match_actions_.find(i);
+                if (it == match_actions_.end())
+                    return MakePatternActions();
+                return it->second;
+            }
         }
-        return -1;
+        return MakePatternActions();
     }
 
     PatternActionsPtr AhoContext::add_match_text(const char *p, uint32_t len)
@@ -125,14 +130,12 @@ namespace logfind
             current_buffer_ = file.get_buffer();
             if (current_buffer_ == nullptr)
             {
-                //std::cerr << "buffer is null" << std::endl;
                 break;
             }
             MEMREF block;
             block.ptr = current_buffer_->readPos();
             block.len = current_buffer_->availableReadBytes();
 
-            //std::cerr << "===JSR read buffer " << current_buffer_->fileoffset() << " " << current_buffer_->availableReadBytes() << std::endl;
             (void)acism_more(acism_, block, (ACISM_ACTION*)::on_match, (ACISM_LINE*)::on_line, this, &state);
             current_buffer_->incrementReadPosition((size_t)block.len);
         }

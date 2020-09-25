@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <assert.h>
 #include "utilities.h"
 #include "cat_cmd.h"
 #include "lru_cache.h"
@@ -64,23 +65,25 @@ namespace logfind
         return fd;
     }
 
-    bool cat_cmd(const std::string& logname, const std::string& cat, const std::string& duration, const std::string& split)
+    bool cat_cmd(const std::string& logname, const std::string& start_time, const std::string& end_time, const std::string& split)
     {
-        uint64_t dur(0);
+        uint64_t start(0);
+        uint64_t end(0);
         uint64_t split_size(0);
         uint64_t split_count(0);
-        uint64_t timestamp = TTLOG2micros(cat.c_str(), cat.size());
-        if (timestamp == 0)
+
+        assert(!start_time.empty());
+        start = TTLOG2micros(start_time.c_str(), start_time.size());
+        if (start == 0)
             return false;
 
-        if (!duration.empty())
-        {
-            dur = HMS2micros(duration.c_str(), duration.size());
-            if (dur == 0)
-                return false;
-        }
-
-        uint64_t endtime = timestamp+dur;
+        assert(!end_time.empty());
+        if (end_time.size() > 10)
+            end = TTLOG2micros(end_time.c_str(), end_time.size());
+        else
+            end = HMS2micros(end_time.c_str(), end_time.size()) + start;
+        if (end == start)
+            return false;
 
         if (!split.empty())
         {
@@ -96,7 +99,7 @@ namespace logfind
         }
 
         std::vector<FileInfo> files;
-        GetFilesToProcess(logname, timestamp, false, files);
+        GetFilesToProcess(logname, start, false, files);
 
         int fd = 1;
         char c1 = 'a';
@@ -113,7 +116,7 @@ namespace logfind
             Buffer *pBuffer = f.get_buffer();
             while (pBuffer)
             {
-                if (BufferTimestamp(pBuffer) > timestamp)
+                if (BufferTimestamp(pBuffer) > start)
                     break;
                 size_t size = pBuffer->availableReadBytes();
                 pBuffer->incrementReadPosition(size);
@@ -133,7 +136,7 @@ namespace logfind
 
             while (pBuffer)
             {
-                if (BufferTimestamp(pBuffer) > endtime)
+                if (BufferTimestamp(pBuffer) > end)
                     break;
                 uint32_t size = pBuffer->availableReadBytes();
                 if (split_size && split_count >= split_size)
