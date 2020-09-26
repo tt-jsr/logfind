@@ -137,7 +137,7 @@ namespace logfind
         }
     }
 
-    uint64_t TTLOG2micros(const char *time, uint32_t len)
+    uint64_t TTLOG2micros(const char *time, uint32_t len, uint64_t *durationOut)
     {
         //2018-05-11 17:03:45.636730
         struct tm tm;
@@ -147,6 +147,8 @@ namespace logfind
         // very basic validation
         if (*(time+4) != '-' || *(time+7) != '-' )
             return 0;
+
+        uint64_t duration(0);
 
         char *p(nullptr);
         int micros = 0;
@@ -176,15 +178,27 @@ namespace logfind
                                 ++p;
                                 micros = std::strtol(p, &p, 10);
                             }
+                            else
+                                duration = MICROS_IN_SEC;
                         }
+                        else
+                            duration = MICROS_IN_MIN;
                     }
+                    else
+                        duration = MICROS_IN_HOUR;
                 }
+                else
+                    duration = MICROS_IN_DAY;
             }
+            else
+                duration = MICROS_IN_MONTH;
         }
 
         time_t t = my_timegm(&tm);
         uint64_t r = (uint64_t)t * 1000000ULL;
         r += micros;
+        if (durationOut)
+            *durationOut = duration;
         return r;
     }
 
@@ -267,7 +281,7 @@ namespace logfind
         if (file.readLine(0, lb) == false)
             return 0;
         
-        uint64_t t = TTLOG2micros(lb.buf, lb.len);
+        uint64_t t = TTLOG2micros(lb.buf, lb.len, nullptr);
         out.assign(lb.buf, 26);
         theApp->free(lb);
         return t;
@@ -363,7 +377,7 @@ namespace logfind
            }
        }
 
-       return TTLOG2micros(spec.c_str(), spec.size());
+       return TTLOG2micros(spec.c_str(), spec.size(), nullptr);
     }
 
     void GetFilesToProcess(const std::string& logname, uint64_t timestamp, bool before, std::vector<FileInfo>& out)

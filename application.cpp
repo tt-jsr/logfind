@@ -42,6 +42,7 @@ namespace logfind
             Match m;
             pa->on_match(m);
         }
+        pCtx_->on_exit();
     }
 
     void Application::on_file_start(const char *fname)

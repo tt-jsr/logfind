@@ -35,18 +35,19 @@ For instance, we could create an action to pretty print an ER, or maybe convert 
 
                              SYNOPSYS
 
-logfind list logfile [--locate time]
+logfind list logfile time
     List the logfiles giving the starting and ending timestamps in the logs, the duration
-    of the logs and compressed/decompressed file size
+    of the logs and compressed/decompressed file size. There's a summary printed at the end.
 
     logfile
         logfile will be used to generate a list of log files to be listed.
         e.g. "OC_cme.log" will include "OC_cme.log" as well as all log rotations of
         that logfile.
 
-    --locate time
+    time
         If a timestamp (TTLOG format: "YYYY-MM-DD hh:mm:ss") is given, it will output the
-        name of the file containing that timestamp.
+        name of the file containing that timestamp. Partial log format is supported to
+        define a range, i.e. "YYYY-MM-DD" will list all files of that day.
 
 
 logfind cat logfile [-1] start-time end-time [--split size]
@@ -108,9 +109,6 @@ logfind search logname [-1] [--script file] [--before spec] [--after spec] [patt
 
 COMMAND LINE EXAMPLES
     search
-        logfile search OC_cme.log -1 bb77a423-f475-434b-a336-3bd09a32c464
-           Search for the order in the given file
-
         logfind search OC_cme.log bb77a423-f475-434b-a336-3bd09a32c464
            Search for the order starting at the latest logfile and search through
            each older log in order.
@@ -131,9 +129,14 @@ COMMAND LINE EXAMPLES
            Split 1 hour worth of logs starting at the given time, into 100MB sized files
 
     list
-        logfind list OC_cme.log --locate "2020-07-04 03:00:10" 
+        logfind list OC_cme.log
+            List all logs.
+
+        logfind list OC_cme.log "2020-07-04 03:00:10" 
             Locate the logfile that contains the given timestamp
 
+        logfind list OC_cme.log "2020-07" 
+            List the logs for the month of July
 
 
                              SCRIPT FILE
@@ -274,8 +277,7 @@ ALGORITHIM
     only once, therefore it will run in linear time with the size of the file regardless of the 
     number of search strings. The implementation also does not break the input into lines 
     but rather the strings search is run against the entire input, only when a match is found 
-    are the bounding line endings located. The input is backed by an LRU cache of 1MB pages 
-    with read ahead to support the 'before' and 'after' actions.
+    are the bounding line endings located. 
 
     Each sub-pattern is run using a separate context for the algorithim. Again, running multiple
     pattern searches on a line match will run in linear time.

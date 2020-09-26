@@ -26,7 +26,7 @@ namespace logfind
             if (*p == '\n' && size > 26)
             {
                 ++p;
-                uint64_t t = TTLOG2micros(p, 26);
+                uint64_t t = TTLOG2micros(p, 26, nullptr);
                 if (t)
                     return t;
                 --p;
@@ -72,7 +72,7 @@ namespace logfind
             if (*p == '\n' && (pBuffer->availableReadBytes()-size) > 26)
             {
                 ++p;
-                uint64_t t = TTLOG2micros(p, 26);
+                uint64_t t = TTLOG2micros(p, 26, nullptr);
                 if (seek && t > timestamp)
                 {
                     pBuffer->setReadPos(p);
@@ -129,13 +129,13 @@ namespace logfind
         uint64_t split_count(0);
 
         assert(!start_time.empty());
-        start = TTLOG2micros(start_time.c_str(), start_time.size());
+        start = TTLOG2micros(start_time.c_str(), start_time.size(), nullptr);
         if (start == 0)
             return false;
 
         assert(!end_time.empty());
         if (end_time.size() > 10)
-            end = TTLOG2micros(end_time.c_str(), end_time.size());
+            end = TTLOG2micros(end_time.c_str(), end_time.size(), nullptr);
         else
             end = HMS2micros(end_time.c_str(), end_time.size()) + start;
         if (end == start)

@@ -12,7 +12,7 @@ namespace logfind
     uint64_t GetCurrentTimeMicros();
 
     // Convert a TLOG timestamp to microseconds
-    uint64_t TTLOG2micros(const char *p, uint32_t len);
+    uint64_t TTLOG2micros(const char *p, uint32_t len, uint64_t *duration);
     uint64_t HMS2micros(const char *p, uint32_t len);
     std::string micros2TTLOG(uint64_t);
 

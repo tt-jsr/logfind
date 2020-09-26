@@ -245,7 +245,7 @@ namespace logfind
         }
         else if (strncmp(p, "${6}", 4) == 0)     // ${time}
         {
-            uint64_t t = TTLOG2micros(match.matched_line.buf, match.matched_line.len);
+            uint64_t t = TTLOG2micros(match.matched_line.buf, match.matched_line.len, nullptr);
             char buf[32];
             int r = sprintf(buf, "%ld", t);
             if (r)
@@ -598,7 +598,7 @@ namespace logfind
 
     void Interval::on_command(int fd, Match& match)
     {
-        uint64_t ts = TTLOG2micros(match.matched_line.buf, match.matched_line.len);
+        uint64_t ts = TTLOG2micros(match.matched_line.buf, match.matched_line.len, nullptr);
         if (lasttime_ == 0)
         {
             lasttime_ = ts;
