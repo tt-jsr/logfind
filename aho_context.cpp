@@ -126,7 +126,10 @@ namespace logfind
         while (true)
         {
             if (theApp->is_exit())
+            {
+                theApp->on_file_end(fname);
                 return true;
+            }
             current_buffer_ = file.get_buffer();
             if (current_buffer_ == nullptr)
             {

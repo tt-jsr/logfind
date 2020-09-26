@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <map>
+#include <signal.h>
 #include "buffer.h"
 #include "lru_cache.h"
 #include "application.h"
@@ -13,6 +14,11 @@
 #include "cat_cmd.h"
 
 static const char *version = ".3";
+
+namespace logfind
+{
+    extern Application *theApp;
+}
 
 void usage(std::ostream& strm)
 {
@@ -90,6 +96,11 @@ void usage(std::ostream& strm)
          One or more strings to search for. Can be used in conjunction with a script file.
 )XXX";
     strm << s << std::endl;
+}
+
+static void ctrl_c_handler(int signum)
+{
+    logfind::theApp->exit();
 }
 
 void AddPatterns(logfind::Application& app, std::vector<std::string>& patterns)
@@ -228,6 +239,15 @@ int main(int argc, char ** argv)
     if (logname == "-")
         dash_1 = true;
 
+    struct sigaction act;
+    memset(&act, 0, sizeof(act));
+    act.sa_handler = ctrl_c_handler;
+    if (sigaction (SIGINT, &act, nullptr) < 0)
+    {
+        std::cerr << "Failed to install sig handler" << std::endl;
+        return 1;
+    }
+
     if (list)
     {
         if (cat)
@@ -358,6 +378,8 @@ int main(int argc, char ** argv)
     app.on_start();
     for (auto& fi : filesToProcess)
     {
+        if (app.is_exit())
+            break;
         std::cerr << fi.filepath << std::endl;
         logfind::AhoFileContextPtr ptr = app.search();
         if (ptr->find(fi.filepath.c_str()) == false)

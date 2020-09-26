@@ -7,6 +7,10 @@
     print "Starting ${filename}\n"
 }
 
+/!program-end!/ {
+    print "program exit\n"
+}
+
 # OC was started
 /S T A R T I N G/ {
     print
