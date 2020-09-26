@@ -19,7 +19,7 @@ namespace logfind
     ReadFile::ReadFile()
     :pInput_(nullptr)
     ,buffer_(nullptr)
-    ,cache_(10)
+    ,cache_(40)
     ,eof_(false)
     {
     }

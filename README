@@ -29,8 +29,8 @@ search
     analysis actions implemented. You can also output line matches to any number of 
     output files to separate them if wanted.
 
-Logfind is also extensible in that additional actions can be easily implemented for customizing. 
-For instance, we could create an action to pretty print an ER, or maybe convert it to json.
+    Logfind is also extensible in that additional actions can be easily implemented for customizing. 
+    For instance, we could create an action to pretty print an ER, or maybe convert it to json.
 
 
                              SYNOPSYS
