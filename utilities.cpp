@@ -19,8 +19,8 @@ namespace logfind
     static const uint64_t MICROS_IN_MIN = MICROS_IN_SEC * 60;
     static const uint64_t MICROS_IN_HOUR = MICROS_IN_MIN * 60;
     static const uint64_t MICROS_IN_DAY = MICROS_IN_HOUR * 24;
-    static const uint64_t MICROS_IN_MONTH = MICROS_IN_HOUR * 30;
-    static const uint64_t MICROS_IN_YEAR = MICROS_IN_DAY * 365;
+    static const uint64_t MICROS_IN_MONTH = MICROS_IN_DAY * 30;
+    static const uint64_t MICROS_IN_YEAR = MICROS_IN_MONTH * 365;
 
     uint64_t GetCurrentTimeMicros()
     {
