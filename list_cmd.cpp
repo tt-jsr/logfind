@@ -11,8 +11,7 @@ namespace logfind
         std::map<uint64_t, FileInfo> files;
         uint64_t timestamp(0);
 
-        uint64_t countFiles(0);
-        uint64_t totalCompressed(0);
+        uint64_t totalSize(0);
         uint64_t totalUncompressed(0);
 
 
@@ -36,20 +35,20 @@ namespace logfind
                     std::cout << fi.filepath << std::endl << "     " << fi.sTimestamp << "  ->  " << fi.srotatetime;
                     if (fi.filepath.find(".gz") != std::string::npos)
                     {
-                        totalCompressed += fi.size;
-                        totalUncompressed += fi.size;
+                        totalUncompressed += fi.size*20;
+                        totalSize += fi.size;
                         std::cout << " (" << hours << "h " << min << "m " << secs << "s) " << fi.size/1000000 << "/" << (fi.size*20)/1000000 << " MB" << std::endl;
                     }
                     else // uncompressed rotated log
                     {
-                        totalUncompressed += fi.size;
+                        totalSize += fi.size;
                         std::cout << " (" << hours << "h " << min << "m " << secs << "s) " << fi.size/1000000 << " MB" << std::endl;
                     }
                 }
             }
             else // unrotated log
             {
-                totalUncompressed += fi.size;
+                totalSize += fi.size;
                 if (timestamp == 0 || timestamp > fi.timestamp)
                     std::cout << fi.filepath << std::endl << "     " << fi.sTimestamp << " " << fi.size/1000000 << " MB" << std::endl;
             }
@@ -70,20 +69,20 @@ namespace logfind
             duration(diff, nullptr, &months, &days, &hours, &min, &secs, nullptr);
 
             const char *suffix = " MB";
-            if (totalCompressed > 1E9)
+            if (totalSize > 1E9)
             {
-                totalCompressed /= 1E9;
+                totalSize /= 1E9;
                 totalUncompressed /= 1E9;
                 suffix = " GB";
             }
             else
             {
-                totalCompressed /= 1E6;
+                totalSize /= 1E6;
                 totalUncompressed /= 1E6;
             }
             std::cout << "    " << first.sTimestamp << "  ->  " << last.srotatetime;
             std::cout << " (" << months << "mon " << days << "days " << hours << "h " << min << "m " << secs << "s) " 
-                << totalCompressed << "/" << totalUncompressed << suffix << std::endl;
+                << totalSize << "/" << totalUncompressed << suffix << " in " << files.size() << " files" <<std::endl;
         }
         return;
     }
