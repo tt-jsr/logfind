@@ -35,7 +35,7 @@ For instance, we could create an action to pretty print an ER, or maybe convert 
 
                              SYNOPSYS
 
-logfind list logfile time
+logfind list logfile time [end-time]
     List the logfiles giving the starting and ending timestamps in the logs, the duration
     of the logs and compressed/decompressed file size. There's a summary printed at the end.
 
@@ -46,8 +46,11 @@ logfind list logfile time
 
     time
         If a timestamp (TTLOG format: "YYYY-MM-DD hh:mm:ss") is given, it will output the
-        name of the file containing that timestamp. Partial log format is supported to
-        define a range, i.e. "YYYY-MM-DD" will list all files of that day.
+        name of the file containing that timestamp. 
+
+    end-time  (optional)
+        Stop the list at the given time.
+        end-time may be "YYYY-MM-DD hh:mm:ss" or  duration "hh:mm:ss" relative to time
 
 
 logfind cat logfile [-1] start-time end-time [--split size]
@@ -56,9 +59,9 @@ logfind cat logfile [-1] start-time end-time [--split size]
     logfile
         logfile will be used to generate a list of log files to be listed.
         e.g. "OC_cme.log" will include "OC_cme.log" as well as all log rotations of
-        that logfile.
+        that logfile. '-' may be used to specify stdin
 
-    -1
+    -1  (optional)
         Interpret the logfile as the name of a log, do not include log rotations.
 
     start-time
@@ -81,18 +84,18 @@ logfind search logname [-1] [--script file] [--before spec] [--after spec] [patt
         e.g. "OC_cme.log" will include "OC_cme.log" as well as all log rotations of
         that logfile. '-' may be used to specify stdin.
 
-    -1
+    -1  (optional)
         Interpret the logfile as the name of a log, do not include log rotations.
 
     -s
-    --script file
+    --script file (optional)
         The name of a script. See SCRIPT FILE below
 
     -b
-    --before spec
+    --before spec (optional)
 
     -a
-    --after spec
+    --after spec (optional)
         The before and after options indicate the starting time for the search and the
         direction. 
         Before will search backwards in the logs from the starting point, and after will search
@@ -103,7 +106,7 @@ logfind search logname [-1] [--script file] [--before spec] [--after spec] [patt
             n:days                   # "4:days"              - n days ago
             n:weeks                  # "2:weeks"             - n weeks ago
 
-    pattern...
+    pattern... (optional)
         One or more strings to search for. Can be used in conjunction with a script file.
 
 

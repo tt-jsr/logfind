@@ -21,7 +21,7 @@ namespace logfind
         return false;
     }
 
-    void list_cmd(const std::string& logname, const std::string& locate)
+    void list_cmd(const std::string& logname, const std::string& start_time, const std::string& end_time)
     {
         std::map<uint64_t, FileInfo> files;
         uint64_t start(0);
@@ -34,12 +34,15 @@ namespace logfind
         uint64_t totalUncompressed(0);
 
 
-        if (!locate.empty())
+        if (!start_time.empty())
         {
-            uint64_t duration(0);
-            start = TTLOG2micros(locate.c_str(), locate.size(), &duration);
-            end = start + duration;
+            start = TTLOG2micros(start_time.c_str(), start_time.size(), nullptr);
         }
+
+        if (end_time.size() > 10)
+            end = TTLOG2micros(end_time.c_str(), end_time.size(), nullptr);
+        else
+            end = HMS2micros(end_time.c_str(), end_time.size()) + start;
 
         GetFileInfos(logname, files, true);
         for (auto& pr : files)

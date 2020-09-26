@@ -23,77 +23,79 @@ namespace logfind
 void usage(std::ostream& strm)
 {
     const char *s = R"XXX(
- usage: " << std::endl;
- logfind list logfile time
-     List the logfiles giving the starting and ending timestamps in the logs, the duration
-     of the logs and compressed/decompressed file size
+logfind list logfile time [end-time]
+    List the logfiles giving the starting and ending timestamps in the logs, the duration
+    of the logs and compressed/decompressed file size. There's a summary printed at the end.
 
-     logfile
-         logfile will be used to generate a list of log files to be listed.
-         e.g. \"OC_cme.log\" will include \"OC_cme.log\" as well as all log rotations of
-         that logfile.
+    logfile
+        logfile will be used to generate a list of log files to be listed.
+        e.g. "OC_cme.log" will include "OC_cme.log" as well as all log rotations of
+        that logfile.
 
-     time
-         If a timestamp (TTLOG format: \"YYYY-MM-DD hh:mm:ss\") is given, it will output the
-         name of the file containing that timestamp. Partial time is supported, i.e. \"YYYY-MM-DD\"
-         will include all files containing that day
+    time
+        If a timestamp (TTLOG format: "YYYY-MM-DD hh:mm:ss") is given, it will output the
+        name of the file containing that timestamp. 
+
+    end-time  (optional)
+        Stop the list at the given time.
+        end-time may be "YYYY-MM-DD hh:mm:ss" or  duration "hh:mm:ss" relative to time
 
 
- logfind cat logfile [-1] start-time end-time [--split size]
-     Cat the contents of the log files.
+logfind cat logfile [-1] start-time end-time [--split size]
+    Cat the contents of the log files.
 
-     logfile
-         logfile will be used to generate a list of log files to be listed.
-         e.g. \"OC_cme.log\" will include \"OC_cme.log\" as well as all log rotations of
-         that logfile.
+    logfile
+        logfile will be used to generate a list of log files to be listed.
+        e.g. "OC_cme.log" will include "OC_cme.log" as well as all log rotations of
+        that logfile. '-' may be used to specify stdin.
 
-     -1
-         Interpret the logfile as the name of a log, do not include log rotations.
+    -1  (optional)
+        Interpret the logfile as the name of a log, do not include log rotations.
 
-     start-time
-         Start cat at the given time, in TTLOG format: \"YYYY-MM-DD hh:mm:ss\"
+    start-time
+        Start cat at the given time, in TTLOG format: "YYYY-MM-DD hh:mm:ss"
 
-     end-time
-         Stop the cat at the given time.
-         end-time may be \"YYYY-MM-DD hh:mm:ss\" or  duration \"hh:mm:ss\" relative to start-time
+    end-time
+        Stop the cat at the given time.
+        end-time may be "YYYY-MM-DD hh:mm:ss" or  duration "hh:mm:ss" relative to start-time
 
-     --split size
-         split the output to files. The name of the files will be aa-xxxxx through zz-xxxxx.
-         The size is in megabytes.
+    --split size
+        split the output to files. The name of the files will be aa-xxxxx through zz-xxxxx.
+        The size is in megabytes. Output will be written in the current directory.
 
- logfind search logname [-1] [--script file] [--before spec] [--after spec] [pattern....]
-     Search the logfiles for a list of strings. Either the script file or one or more patterns
-     or both must be specified.
+logfind search logname [-1] [--script file] [--before spec] [--after spec] [pattern....]
+    Search the logfiles for a list of strings. Either the script file or one or more patterns
+    or both must be specified.
 
-     logfile
-         logfile will be used to generate a list of log files to be listed.
-         e.g. \"OC_cme.log\" will include \"OC_cme.log\" as well as all log rotations of
-         that logfile.
+    logfile
+        logfile will be used to generate a list of log files to be listed.
+        e.g. "OC_cme.log" will include "OC_cme.log" as well as all log rotations of
+        that logfile. '-' may be used to specify stdin.
 
-     -1
-         Interpret the logfile as the name of a log, do not include log rotations.
+    -1  (optional)
+        Interpret the logfile as the name of a log, do not include log rotations.
 
-     -s
-     --script file
-         The name of a script. See SCRIPT FILE below
+    -s
+    --script file (optional)
+        The name of a script. See SCRIPT FILE below
 
-     -b
-     --before spec
+    -b
+    --before spec (optional)
 
-     -a
-     --after spec
-         The before and after options indicate the starting time for the search and the
-         direction. 
-         Before will search backwards in the logs from the starting point, and after will search
-         forward through the logs from the starting point.
+    -a
+    --after spec (optional)
+        The before and after options indicate the starting time for the search and the
+        direction. 
+        Before will search backwards in the logs from the starting point, and after will search
+        forward through the logs from the starting point.
+        
+        spec can be one of:
+            "YYYY-MM-DD hh:mm:ss"    # "2020-05-04 17:30:00" - TTLOG format in UTC
+            n:days                   # "4:days"              - n days ago
+            n:weeks                  # "2:weeks"             - n weeks ago
 
-         spec can be one of:
-             \"YYYY-MM-DD hh:mm:ss\"    # \"2020-05-04 17:30:00\" - TTLOG format in UTC
-             n:days                   # \"4:days\"              - n days ago
-             n:weeks                  # \"2:weeks\"             - n weeks ago
-
-     pattern...
-         One or more strings to search for. Can be used in conjunction with a script file.
+    pattern... (optional)
+        One or more strings to search for. Can be used in conjunction with a script file.
 )XXX";
     strm << s << std::endl;
 }
@@ -125,7 +127,6 @@ int main(int argc, char ** argv)
     std::string logname;
     std::string before;
     std::string after;
-    std::string locate;
     std::string split;
 
     if (argc == 1)
@@ -204,17 +205,6 @@ int main(int argc, char ** argv)
             }
             after = argv[a];
         }
-        else if (strcmp (argv[a], "--locate") == 0)
-        {
-            ++a;
-            if (a == argc)
-            {
-                usage(std::cerr);
-                std::cout << "--locate requires time" << std::endl;
-                return 1;
-            }
-            locate = argv[a];
-        }
         else if (strcmp (argv[a], "-1") == 0)
         {
             dash_1 = true;
@@ -277,9 +267,16 @@ int main(int argc, char ** argv)
             std::cerr << "stdin not allowed for list" << std::endl;
             return 1;
         }
-        if (locate.empty() && positional_args.size())
-            locate = positional_args[0];
-        logfind::list_cmd(logname, locate);
+        std::string start_time;
+        std::string end_time;
+        int parg = 0;
+
+        if (parg < positional_args.size())
+            start_time = positional_args[parg];
+        ++parg;
+        if (parg < positional_args.size())
+            end_time = positional_args[parg];
+        logfind::list_cmd(logname, start_time, end_time);
         return 0;
     }
 

@@ -3,7 +3,7 @@
 
 namespace logfind 
 {
-    void list_cmd(const std::string& logname, const std::string& locate);
+    void list_cmd(const std::string& logname, const std::string& starttime, const std::string& endtime);
 }
 
 #endif
