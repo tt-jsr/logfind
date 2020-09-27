@@ -13,7 +13,7 @@
 #include "list_cmd.h"
 #include "cat_cmd.h"
 
-static const char *version = ".3";
+static const char *version = ".9";
 
 namespace logfind
 {
