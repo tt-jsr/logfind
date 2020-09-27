@@ -3,9 +3,8 @@
 #include <unordered_map>
 #include <mutex>
 #include <condition_variable>
+#include <thread>
 #include "zlib.h"
-
-#define BUFFER_KEY_FROM_FILE_OFFSET(off) ((off/BUFSIZE) * BUFSIZE);
 
 namespace logfind
 {
@@ -78,9 +77,6 @@ namespace logfind
         // Read from the buffer directly
         Buffer *get_buffer();
 
-        // If accessing cache directly, use the lock;
-        LRUCache *get_cache() {return &cache_;}
-        std::mutex& getlock() {return mtx_;}
     protected:
         std::string filename_;
         bool buffer_check();
@@ -96,6 +92,7 @@ namespace logfind
         bool bRun_;
         int read_ahead_;
         uint64_t next_read_ahead_buffer_key_;
+        std::thread thrd_;
     };
 }
 #endif

@@ -36,6 +36,8 @@ namespace logfind
         delete pInput_;
         bRun_ = false;
         cv_.notify_one();
+        if (thrd_.joinable())
+            thrd_.join();
     }
 
     void ReadFile::reset()
@@ -45,9 +47,9 @@ namespace logfind
             pInput_->close();
         }
         delete pInput_;
+        pInput_ = nullptr;
         buffer_ = nullptr;
         filename_.clear();
-        std::lock_guard<std::mutex> lck(mtx_);
         cache_.clear();
         next_read_ahead_buffer_key_ = 0;
         read_ahead_ = 0;
@@ -56,19 +58,24 @@ namespace logfind
 
     bool ReadFile::open(const char * f)
     {
-        reset();
+        bRun_ = false;
+        cv_.notify_one();
+        if (thrd_.joinable())
+            thrd_.join();
+        {
+            std::lock_guard<std::mutex> lck(mtx_);
+            reset();
 
-        filename_ = f;
-        if (filename_.size() > 3 && strcmp(&filename_[filename_.size()-3], ".gz") == 0)
-            pInput_ = new ZInput();
-        else
-            pInput_ = new TInput();
-        if (pInput_->open(f) == false)
-            return false;
+            filename_ = f;
+            if (filename_.size() > 3 && strcmp(&filename_[filename_.size()-3], ".gz") == 0)
+                pInput_ = new ZInput();
+            else
+                pInput_ = new TInput();
+            if (pInput_->open(f) == false)
+                return false;
 
-        std::thread thrd(&ReadFile::read_ahead_thread_, this);
-        thrd.detach();
-
+            thrd_ = std::thread (&ReadFile::read_ahead_thread_, this);
+        }
         // Wait until we have some read ahead
         while (read_ahead_ == 0)
             std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -82,7 +89,8 @@ namespace logfind
 
     bool ReadFile::readLine(F_OFFSET offset, linebuf& lb)
     {
-        uint64_t key = BUFFER_KEY_FROM_FILE_OFFSET(offset);
+        //std::cerr << "===JSR readline" << std::endl;
+        uint64_t key = fileOffsetToBufferKey(offset);
         std::lock_guard<std::mutex> lck(mtx_);
         Buffer *pBuf = cache_.get(key);
         if (pBuf)
@@ -118,10 +126,15 @@ namespace logfind
             }
             assert(pBuf);
             pBuf->reset(next_read_ahead_buffer_key_);
-            next_read_ahead_buffer_key_ = BUFFER_KEY_FROM_FILE_OFFSET(next_read_ahead_buffer_key_+BUFSIZE+100);
+            //std::cerr << "===JSR buffer key: " << next_read_ahead_buffer_key_ << std::endl;
+            next_read_ahead_buffer_key_ = fileOffsetToBufferKey(next_read_ahead_buffer_key_+BUFSIZE+100);
 
-            while (!pInput_->eof() && !pBuf->isFull())
+            //std::cerr << "===JSR next key: " << next_read_ahead_buffer_key_ << std::endl;
+
+            while (!pBuf->isFull())
             {
+                if (bRun_ == false)
+                    return;
                 int r = pInput_->read(pBuf->writePos(), pBuf->availableWriteBytes());
                 if (r <= 0)
                 {
@@ -135,6 +148,7 @@ namespace logfind
             {
                 std::lock_guard<std::mutex> lck(mtx_);
                 ++read_ahead_;
+                //std::cerr << "===JSR adding to cache: " << pBuf->fileoffset() << std::endl;
                 cache_.add(pBuf);
             }
         }
@@ -148,14 +162,20 @@ namespace logfind
             if (buffer_ == nullptr)
                 key = 0;
             else
-                key = BUFFER_KEY_FROM_FILE_OFFSET(buffer_->fileoffset()+BUFSIZE*100); 
+            {
+            //std::cerr << "===JSR cache key prior " << buffer_->fileoffset() << std::endl;
+                key = fileOffsetToBufferKey(buffer_->fileoffset()+BUFSIZE+100); 
+            }
 
+            //std::cerr << "===JSR cache key want " << key << std::endl;
             std::lock_guard<std::mutex> lck(mtx_);
             Buffer *pBuf = cache_.get(key);
             if (pBuf == nullptr)
                 return false;
+            assert(pBuf->fileoffset() == key);
             buffer_ = pBuf;
             cache_.add(buffer_);  // put it back in the cache
+            //std::cerr << "===JSR current_buffer: " << buffer_->fileoffset() << std::endl;
             --read_ahead_;
             cv_.notify_one();
         }
@@ -223,6 +243,8 @@ namespace logfind
 
     int TInput::read(char *dest, uint64_t len)
     {
+        if (eof_)
+            return 0;
         int r = ::read(fd_, dest, len);
         if (r <= 0)
             eof_ = true;
@@ -285,6 +307,8 @@ namespace logfind
     int ZInput::read(char *dest, uint64_t len)
     {
         int ret;
+        if (eof_)
+            return 0;
         if (strm_.avail_in == 0)
         {
             int r = ::read(fd_, in_, sizeof(in_));

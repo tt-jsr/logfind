@@ -8,7 +8,7 @@ namespace logfind
 {
     struct linebuf;
 
-    static const int BUFSIZE = 1024*1024;
+    static const uint64_t BUFSIZE = 1024*1024;
 
     using F_OFFSET = uint64_t;      // file offset
     using B_OFFSET = uint64_t;      // buffer offset, offset from begining of buffer
