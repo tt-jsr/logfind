@@ -19,7 +19,8 @@ namespace logfind
         // Get a buffer for reuse. Must call add() to put back in cache
         Buffer *get_lru();
 
-        // Get a buffer. Buffer will become the most recently used
+        // Get a buffer. Buffer will be removed from the cache.
+        // call add to put it back in, it will become the MRU.
         Buffer *get(uint32_t key);
 
         // Add a buffer to the cache

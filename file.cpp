@@ -7,6 +7,7 @@
 #include <string.h>
 #include <assert.h>
 #include <iostream>
+#include <thread>
 #include "linebuf.h"
 #include "buffer.h"
 #include "lru_cache.h"
@@ -15,12 +16,16 @@
 
 namespace logfind
 {
+    static const int NPAGES = 40;
+    static const int NREAD_AHEAD = 20;
     
     ReadFile::ReadFile()
     :pInput_(nullptr)
     ,buffer_(nullptr)
-    ,cache_(40)
-    ,eof_(false)
+    ,cache_(NPAGES)
+    ,bRun_(false)
+    ,read_ahead_(0)
+    ,next_read_ahead_buffer_key_(0)
     {
     }
 
@@ -29,6 +34,8 @@ namespace logfind
         if (pInput_)
             pInput_->close();
         delete pInput_;
+        bRun_ = false;
+        cv_.notify_one();
     }
 
     void ReadFile::reset()
@@ -38,10 +45,13 @@ namespace logfind
             pInput_->close();
         }
         delete pInput_;
-        cache_.clear();
-        eof_ = false;
         buffer_ = nullptr;
         filename_.clear();
+        std::lock_guard<std::mutex> lck(mtx_);
+        cache_.clear();
+        next_read_ahead_buffer_key_ = 0;
+        read_ahead_ = 0;
+        buffer_ = nullptr;
     }
 
     bool ReadFile::open(const char * f)
@@ -55,8 +65,13 @@ namespace logfind
             pInput_ = new TInput();
         if (pInput_->open(f) == false)
             return false;
-        if (read_() < 0)
-            return false;
+
+        std::thread thrd(&ReadFile::read_ahead_thread_, this);
+        thrd.detach();
+
+        // Wait until we have some read ahead
+        while (read_ahead_ == 0)
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         return true;
     }
 
@@ -65,81 +80,92 @@ namespace logfind
         return filename_;
     }
 
-    Buffer *ReadFile::getBufferFromFileOffset(uint64_t offset)
-    {
-        uint64_t page = (offset/BUFSIZE) * BUFSIZE;
-        return cache_.get(page);
-    }
-
     bool ReadFile::readLine(F_OFFSET offset, linebuf& lb)
     {
-        Buffer *pBuf = getBufferFromFileOffset(offset);
-        if (pBuf == nullptr)
+        uint64_t key = BUFFER_KEY_FROM_FILE_OFFSET(offset);
+        std::lock_guard<std::mutex> lck(mtx_);
+        Buffer *pBuf = cache_.get(key);
+        if (pBuf)
         {
-            theApp->alloc(lb);
-            strcpy(lb.buf, "logfind: buffer not in cache!");
-            lb.len = strlen(lb.buf);
-            return true;
+            bool r = pBuf->readline(offset, lb);
+            cache_.add(pBuf);   // put it back
+            return r;
         }
-        // Buffer may not contain the entire line
-        return pBuf->readline(offset, lb);
+        theApp->alloc(lb);
+        strcpy(lb.buf, "logfind: buffer not in cache!");
+        lb.len = strlen(lb.buf);
+        return true;
     }
 
-    int ReadFile::read_()
+    void ReadFile::read_ahead_thread_()
     {
-        if (buffer_ == nullptr || buffer_->isFull())
+        bRun_ = true;
+        while (bRun_)
         {
-            F_OFFSET offset; 
-            if (buffer_)
-                offset = buffer_->fileoffset() + BUFSIZE;
-            else
-                offset = 0;
-            buffer_ = cache_.get_lru();
-            buffer_->reset(offset);
-            cache_.add(buffer_);
-        }
-        int r = pInput_->read(buffer_->writePos(), buffer_->availableWriteBytes());
-        if (r <= 0)
-            eof_ = true;
-        if (r > 0)
-        {
-            buffer_->incrementAvailableReadBytes((size_t)r);
-        }
-        return r;
-    }
-
-    bool ReadFile::eof()
-    {
-        return eof_;
-    }
-
-    /*
-    char ReadFile::get()
-    {
-        char c = buffer_->getchar();
-        if (c == 0)
-        {
-            if (read_() <= 0)
+            Buffer *pBuf(nullptr);
             {
-                return 0;
+                std::unique_lock<std::mutex> lck(mtx_);
+                cv_.wait(lck,[this] {
+                        if (this->bRun_ == false)
+                            return true;
+                        if (this->read_ahead_ < NREAD_AHEAD)
+                            return true;
+                        return false;
+                    });
+                if (bRun_ == false)
+                    return;
+                pBuf = cache_.get_lru();
             }
-            c = buffer_->getchar();
+            assert(pBuf);
+            pBuf->reset(next_read_ahead_buffer_key_);
+            next_read_ahead_buffer_key_ = BUFFER_KEY_FROM_FILE_OFFSET(next_read_ahead_buffer_key_+BUFSIZE+100);
+
+            while (!pInput_->eof() && !pBuf->isFull())
+            {
+                int r = pInput_->read(pBuf->writePos(), pBuf->availableWriteBytes());
+                if (r <= 0)
+                {
+                    break;
+                }
+                if (r > 0)
+                {
+                    pBuf->incrementAvailableReadBytes((size_t)r);
+                }
+            }
+            {
+                std::lock_guard<std::mutex> lck(mtx_);
+                ++read_ahead_;
+                cache_.add(pBuf);
+            }
         }
-        if (c == '\n')
-        {
-            lines_[++lineno_] = file_offset_;
-        }
-        return c;
     }
-    */
+
+    bool ReadFile::buffer_check()
+    {
+        if (buffer_ == nullptr || buffer_->availableReadBytes() == 0)
+        {
+            uint64_t key(0);
+            if (buffer_ == nullptr)
+                key = 0;
+            else
+                key = BUFFER_KEY_FROM_FILE_OFFSET(buffer_->fileoffset()+BUFSIZE*100); 
+
+            std::lock_guard<std::mutex> lck(mtx_);
+            Buffer *pBuf = cache_.get(key);
+            if (pBuf == nullptr)
+                return false;
+            buffer_ = pBuf;
+            cache_.add(buffer_);  // put it back in the cache
+            --read_ahead_;
+            cv_.notify_one();
+        }
+        return true;
+    }
 
     int ReadFile::read(char *buf, int size)
     {
-        if (buffer_->availableReadBytes() == 0)
-        {
-            if (read_() <= 0)
-                return 0;
-        }
+        if (!buffer_check())
+            return 0;
             
         uint32_t b = buffer_->availableReadBytes();
         if (b < size)
@@ -151,17 +177,17 @@ namespace logfind
 
     Buffer *ReadFile::get_buffer()
     {
-        if (buffer_->availableReadBytes() == 0)
-        {
-            if (read_() <= 0)
-            {
-                return nullptr;
-            }
-        }
+        if (!buffer_check())
+            return nullptr;
         return buffer_;
     }
 
     /**************************************************************/
+    TInput::TInput()
+    :fd_(-1)
+    ,eof_(true)
+    {}
+
     TInput::~TInput()
     {
         ::close(fd_);
@@ -170,6 +196,7 @@ namespace logfind
     void TInput::close()
     {
         ::close(fd_);
+        eof_ = true;
     }
 
     bool TInput::open(const char *fname)
@@ -184,16 +211,30 @@ namespace logfind
             if (fd_ < 0)
                 return false;
             filename_ = fname;
+            eof_ = false;
         }
         return true;
     }
 
+    bool TInput::eof()
+    {
+        return eof_;
+    }
+
     int TInput::read(char *dest, uint64_t len)
     {
-        return ::read(fd_, dest, len);
+        int r = ::read(fd_, dest, len);
+        if (r <= 0)
+            eof_ = true;
+        return r;
     }
 
     /**************************************************************/
+
+    ZInput::ZInput()
+    :fd_(-1)
+    ,eof_(true)
+    {}
 
     ZInput::~ZInput()
     {
@@ -203,6 +244,7 @@ namespace logfind
     void ZInput::close()
     {
         ::close(fd_);
+        eof_ = true;
     }
 
     bool ZInput::open(const char *fname)
@@ -230,8 +272,14 @@ namespace logfind
             if (fd_ < 0)
                 return false;
             filename_ = fname;
+            eof_ = false;
         }
         return true;
+    }
+
+    bool ZInput::eof()
+    {
+        return eof_;
     }
 
     int ZInput::read(char *dest, uint64_t len)
@@ -244,6 +292,7 @@ namespace logfind
             {
                 inflateEnd(&strm_);
                 ::close(fd_);
+                eof_ = true;
                 return r;
             }
 

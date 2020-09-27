@@ -1,13 +1,32 @@
 Logfind
 
-                             OVERVIEW
+                                   OVERVIEW
+-------------------------------------------------------------------------------------------------
 
 Logfind provides similar functionality to grep -F (aka fgrep) and sed(1) programs.
 This was written to try to simplify searching through TT log files. It is capable of
 handling .gz files natively and has mechanisms for iterating through /var/log/debesys
 and /var/log/debesys/oldlogs in chronological order if searching through multiple files.
 
-There are three different forms for this program: list, cat and search
+There are three different commands for this program: list, cat and search
+
+
+For those who don't like to read a doc, here are some commands to get a taste what 
+this can do:
+
+logfind list OC_cme.log
+    This command lists all cme logs, it will give the start and end times for each file
+    as well as some other info. You can also query in what file does a timestamp reside.
+
+logfind cat OC_cme.log "2020-09-17 03:00:00" "00:30:00"
+    This command will cat 30 minutes worth of logs starting on Sep 17 at 3am
+
+logfind search OC_cme.log --before "2020-09-17 13:00:00" 7dfd611d-1d25-4c4f-af7b-5b93907a2fdc
+    Find all orders that occured before Sep 17 @ 1pm.
+
+
+                                    COMMANDS
+-------------------------------------------------------------------------------------------------
 
 list 
     Lists the logfiles giving thier starting and ending timestamps for the contents
@@ -33,7 +52,8 @@ search
     For instance, we could create an action to pretty print an ER, or maybe convert it to json.
 
 
-                             SYNOPSYS
+                                        SYNOPSYS
+-------------------------------------------------------------------------------------------------
 
 logfind list logfile time [end-time]
     List the logfiles giving the starting and ending timestamps in the logs, the duration
@@ -110,7 +130,8 @@ logfind search logname [-1] [--script file] [--before spec] [--after spec] [patt
         One or more strings to search for. Can be used in conjunction with a script file.
 
 
-COMMAND LINE EXAMPLES
+                               COMMAND LINE EXAMPLES
+-------------------------------------------------------------------------------------------------
     search
         logfind search OC_cme.log bb77a423-f475-434b-a336-3bd09a32c464
            Search for the order starting at the latest logfile and search through
@@ -142,7 +163,8 @@ COMMAND LINE EXAMPLES
             List the logs for the month of July
 
 
-                             SCRIPT FILE
+                                SCRIPT FILE
+-------------------------------------------------------------------------------------------------
 
 A script file contains multiple patterns to search for. For each pattern, a set
 of actions can be specified to be executed against the matching line.
@@ -151,6 +173,18 @@ For each matching line, sub-patterns can be defined to perform a line search wit
 a set of associated actions.
 
 A pattern is a fixed string, regex is not supported.
+
+The repo contains some canned scripts.
+
+oc.lf
+    Script to locate certain startup logs
+
+find-orders.lf
+    Helpful script for finding and printing execution reports.
+
+find-nos.lf
+    Script for finding the NOS of an order
+
 
 SYNTAX
     # The basic syntax is pretty simple.
@@ -274,7 +308,8 @@ SPECIAL PATTERNS
     }
 
             
-ALGORITHIM
+                                  ALGORITHIM
+-------------------------------------------------------------------------------------------------
     This program uses the aho-corasick algorithim for finding the pattern matches. With an 
     arbitrary number of strings to search for, it is guaranteed to look at each input byte
     only once, therefore it will run in linear time with the size of the file regardless of the 
@@ -285,7 +320,8 @@ ALGORITHIM
     Each sub-pattern is run using a separate context for the algorithim. Again, running multiple
     pattern searches on a line match will run in linear time.
 
-EXAMPLES
+                                  EXAMPLES
+-------------------------------------------------------------------------------------------------
     Simple example show a single search.
     This performs the same action as the command line
     logfind ExecutionReport OC_cme.log
@@ -380,7 +416,8 @@ EXAMPLES
             }
         }
 
-NOTES
+                                      NOTES
+-------------------------------------------------------------------------------------------------
     See https://github.com/mischasan/aho-corasick
     for original aho-corasick algorithm code I stole.
 

@@ -33,13 +33,10 @@ namespace logfind
         return remove_lru_();
     }
 
-    // Get a buffer. Buffer will become the most recently used
+    // Get a buffer.
     Buffer *LRUCache::get(uint32_t key)
     {
-        Buffer *pBuf = remove_key_(key);
-        if (pBuf)
-            add(pBuf);
-        return pBuf;
+        return remove_key_(key);
     }
 
     void LRUCache::add(Buffer *pBuf)
