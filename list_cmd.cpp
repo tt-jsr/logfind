@@ -37,6 +37,11 @@ namespace logfind
         if (!start_time.empty())
         {
             start = TTLOG2micros(start_time.c_str(), start_time.size(), nullptr);
+            if (start == 0)
+            {
+                std::cerr << "Could not parse time" << std::endl;
+                return;
+            }
         }
 
         if (end_time.size())
@@ -58,11 +63,6 @@ namespace logfind
             }
         }
 
-        if (start == 0)
-        {
-            std::cerr << "Could not parse time" << std::endl;
-            return;
-        }
 
         GetFileInfos(logname, files, true);
         if (files.size() == 0)
