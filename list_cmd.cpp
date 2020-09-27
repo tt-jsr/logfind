@@ -39,12 +39,38 @@ namespace logfind
             start = TTLOG2micros(start_time.c_str(), start_time.size(), nullptr);
         }
 
-        if (end_time.size() > 10)
-            end = TTLOG2micros(end_time.c_str(), end_time.size(), nullptr);
-        else
-            end = HMS2micros(end_time.c_str(), end_time.size()) + start;
+        if (end_time.size())
+        {
+            if (end_time.size() > 10)
+            {
+                end = TTLOG2micros(end_time.c_str(), end_time.size(), nullptr);
+            }
+            else
+            {
+                end = HMS2micros(end_time.c_str(), end_time.size());
+                if (end)
+                    end += start;
+            }
+            if (end == 0)
+            {
+                std::cerr << "Could not parse end-time" << std::endl;
+                return;
+            }
+        }
+
+        if (start == 0)
+        {
+            std::cerr << "Could not parse time" << std::endl;
+            return;
+        }
 
         GetFileInfos(logname, files, true);
+        if (files.size() == 0)
+        {
+            std::cerr << "Cannot find any logfiles of type " << logname << std::endl;
+            return;
+        }
+
         for (auto& pr : files)
         {
             const FileInfo& fi = pr.second;

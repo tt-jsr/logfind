@@ -51,7 +51,7 @@ namespace logfind
         int read(char *dest, uint64_t len) override;
         bool eof() override;
     private:
-        static const int CHUNK = 1024*256;
+        static const int CHUNK = 1024*1024;
         int fd_;
         bool eof_;
         std::string filename_;

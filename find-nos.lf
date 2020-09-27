@@ -1,0 +1,8 @@
+# Script to find the NOS of an order
+
+/--orderid here---/ {
+    /EXEC_TYPE_NEW/ {
+        print
+        exit
+}
+

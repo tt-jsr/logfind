@@ -320,7 +320,6 @@ int main(int argc, char ** argv)
 
         if (logfind::cat_cmd(logname, start_time, end_time, split) == false)
         {
-            std::cerr << "--cat, invalid arguments" << std::endl;
             return 1;
         }
         return 0;
@@ -372,6 +371,11 @@ int main(int argc, char ** argv)
         logfind::GetFilesToProcess(logname, timestamp, bBefore, filesToProcess);
     }
 
+    if (filesToProcess.size() == 0)
+    {
+        std::cerr << "Cannot find any logfiles of type " << logname << std::endl;
+        return 1;
+    }
     app.on_start();
     for (auto& fi : filesToProcess)
     {
