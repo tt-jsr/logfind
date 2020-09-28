@@ -18,3 +18,6 @@ logfind : $(OBJS) $(DEPS)
 clean: 
 	rm $(OBJS) logfind
 
+install:
+	cp logfind oc.lf find-orders.lf logfind.sh llist.sh lcat.sh lsearch.sh ~/bin
+

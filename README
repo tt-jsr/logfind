@@ -46,13 +46,13 @@ logfind list logfile time [end-time]
         e.g. "OC_cme.log" will include "OC_cme.log" as well as all log rotations of
         that logfile.
 
-    time
+    start-time
         If a timestamp (TTLOG format: "YYYY-MM-DD hh:mm:ss") is given, it will output the
         name of the file containing that timestamp. 
 
     end-time  (optional)
         Stop the list at the given time.
-        end-time may be "YYYY-MM-DD hh:mm:ss" or  duration "hh:mm:ss" relative to time
+        end-time may be "YYYY-MM-DD hh:mm:ss" or  duration "hh:mm:ss" relative to start-time
 
 
 logfind cat logfile [-1] start-time end-time [--split size]
@@ -308,8 +308,8 @@ SPECIAL PATTERNS
                                   EXAMPLES
 -------------------------------------------------------------------------------------------------
     Simple example show a single search.
-    This performs the same action as the command line
-    logfind ExecutionReport OC_cme.log
+    This performs the same action as the command line:
+    logfind search OC_cme.log ExecutionReport
 
         /ExecutionReport/ {
             print
@@ -317,7 +317,7 @@ SPECIAL PATTERNS
 
     You can search for multiple patterns.
     This performs the same action as the command line
-    logfind ExecutionReport OrderCancelReject OC_cme.log
+    logfind search OC_cme.log ExecutionReport OrderCancelReject 
 
         /ExecutionReport/ {
             print
@@ -341,7 +341,7 @@ SPECIAL PATTERNS
             }
         }
 
-    I want an easy way to identify order id I'm looking for
+    I want an easy way to identify the orders I find
         /bb77a423-f475-434b-a336-3bd09a32c464/ {
             /EXEC_TYPE_REPLACED/ {
                 print "REPLACE "       # No new-line
