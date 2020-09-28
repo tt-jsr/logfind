@@ -105,7 +105,6 @@ namespace logfind
                 if (accept(fi, start, end))
                 {
                     ++count;
-                    last = &fi;
                     totalSize += fi.size;
                     std::cout << fi.filepath << std::endl << "     " << fi.sTimestamp << " " << fi.size/1000000 << " MB" << std::endl;
                 }

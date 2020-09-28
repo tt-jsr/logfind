@@ -8,7 +8,7 @@ This was written to try to simplify searching through TT log files. It is capabl
 handling .gz files natively and has mechanisms for iterating through /var/log/debesys
 and /var/log/debesys/oldlogs in chronological order if searching through multiple files.
 
-There are three different forms for this program: list, cat and search
+There are three different commands for this program: list, cat and search
 
 list 
     Lists the logfiles giving thier starting and ending timestamps for the contents
@@ -126,6 +126,9 @@ logfind search logname [-1] [--script file] [--before spec] [--after spec] [patt
         logfind search OC_cme.log --after "2020-09-10 03:22:00" bb77a423-f475-434b-a336-3bd09a32c464 "S T A R T"
            Search for the order starting at the given timestamp and search
            each newer log in forward order. Also print any OC starts that may have happened
+
+        logfind search OC_cme.log --after "2020-09-10 03:22:00" --script oc.lf
+           Run the script starting at the given timestamp and search each newer log in forward order. 
 
     cat
         logfind cat OC_cme.log "2020-08-09 17:30:00" "00:30:00" 
