@@ -435,7 +435,8 @@ namespace logfind
                 out.push_back(it->second);
                 --it;
             }
-            out.push_back(files.begin()->second);
+            if (files.size())
+                out.push_back(files.begin()->second);
         }
     }
 }

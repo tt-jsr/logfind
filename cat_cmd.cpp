@@ -131,7 +131,10 @@ namespace logfind
         assert(!start_time.empty());
         start = TTLOG2micros(start_time.c_str(), start_time.size(), nullptr);
         if (start == 0)
+        {
+            std::cerr << "Could not parse start_time" << std::endl;
             return false;
+        }
 
         assert(!end_time.empty());
         if (end_time.size() > 10)
@@ -139,7 +142,10 @@ namespace logfind
         else
             end = HMS2micros(end_time.c_str(), end_time.size()) + start;
         if (end == start)
+        {
+            std::cerr << "time range is zero" << std::endl;
             return false;
+        }
 
         if (!split.empty())
         {
@@ -150,12 +156,18 @@ namespace logfind
             }
             catch (std::exception&)
             {
+                std::cerr << "Invalid size argument" << std::endl;
                 return false;
             }
         }
 
         std::vector<FileInfo> files;
         GetFilesToProcess(logname, start, false, files);
+        if (files.size() == 0)
+        {
+            std::cerr << "Cannot find any logfiles of type " << logname << std::endl;
+            return false;
+        }
 
         int fd = 1;
         char c1 = 'a';

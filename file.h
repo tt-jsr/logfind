@@ -42,7 +42,7 @@ namespace logfind
         bool open(const char *);
         int read(char *dest, uint64_t len) override;
     private:
-        static const int CHUNK = 1024*256;
+        static const int CHUNK = 1024*1024;
         int fd_;
         std::string filename_;
         z_stream strm_;
