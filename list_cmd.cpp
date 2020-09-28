@@ -11,12 +11,12 @@ namespace logfind
         if (start == 0)
             return true;
         if (end == 0)
-            return start > fi.timestamp && start < fi.rotatetime;
-        if (start < fi.timestamp)
-            return false;
-        if (end >= fi.rotatetime)
+            return start <= fi.timestamp;
+        if (start <= fi.timestamp && end > fi.rotatetime)
             return true;
-        if (end < fi.rotatetime)
+        if (start >= fi.timestamp && start < fi.rotatetime)
+            return true;
+        if (end >= fi.timestamp && end < fi.rotatetime)
             return true;
         return false;
     }
@@ -44,7 +44,7 @@ namespace logfind
             }
         }
 
-        if (end_time.size())
+        if (!end_time.empty())
         {
             if (end_time.size() > 10)
             {
