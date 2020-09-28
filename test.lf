@@ -1,16 +1,72 @@
+/!program-start!/ {
+    print "Program is starting\n"
+}
+
+/!program-end!/ {
+    print "program is ending\n"
+}
+
+/!file-start!/ {
+    print "File start: ${filename}\n"
+}
+
+/!file-end!/ {
+    print "File end: ${filename}\n"
+}
+
 /S T A R T/ {
     print
 }
 
-/Orderserver is ready/ {
+# This is a test
+/S H U T D O W N/ {
     print
 }
 
-/loadbalancer invoked/ {
-    print
-}
+/8e07c251-d8f3-437a-b329-fb2d4872b0b5/ {
 
-/build/ {
-    print
+    /EXEC_TYPE_NEW/ {
+        / account_id=/ {
+            print "${match/ }\n"
+        }
+# This is some more comments
+        / user_id=/ {
+            print "${match/ }\n"
+        }
+        / curr_user_id=/ {
+            print "${match/ }\n"
+        }
+        print "NOS: ${lineno}: ${line:,120}\n"
+    }
+    /EXEC_TYPE_REPLACE/ {
+        count "Num of replace: ${count}\n"
+        file "cxlrpl.log" 
+        interval "CxpRpl Interval: ${time}\n"
+        print "${time} ${line}\n"
+    }
+    /EXEC_TYPE_TRADE/ {
+        / account_id=/ {
+            print "${match/ }\n"
+        }
+        / user_id=/ {
+            print "${match/ }\n"
+        }
+        / curr_user_id=/ {
+            print "${match/ }\n"
+        }
+        print "TRADE: ${lineno}: ${line:,120}\n"
+    }
+    /OrderCancelReject/ {
+        / account_id=/ {
+            print "${match/ }\n"
+        }
+        / user_id=/ {
+            print "${match/ }\n"
+        }
+        / curr_user_id=/ {
+            print "${match/ }\n"
+        }
+        print "OCR: ${lineno}: ${line}\n"
+    }
 }
 
