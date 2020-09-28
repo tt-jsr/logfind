@@ -46,15 +46,15 @@ namespace logfind
 
         if (!end_time.empty())
         {
-            if (end_time.size() > 10)
-            {
-                end = TTLOG2micros(end_time.c_str(), end_time.size(), nullptr);
-            }
-            else
+            if (end_time[1] == ':' || end_time[2] == ':')
             {
                 end = HMS2micros(end_time.c_str(), end_time.size());
                 if (end)
                     end += start;
+            }
+            else
+            {
+                end = TTLOG2micros(end_time.c_str(), end_time.size(), nullptr);
             }
             if (end == 0)
             {
@@ -63,6 +63,11 @@ namespace logfind
             }
         }
 
+        if (!start_time.empty() && !end_time.empty() && (end-start == 0))
+        {
+            std::cerr << "Time duration between start-time and end-time is zero" << std::endl;
+            return;
+        }
 
         GetFileInfos(logname, files, true);
         if (files.size() == 0)

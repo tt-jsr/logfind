@@ -137,10 +137,26 @@ namespace logfind
         }
 
         assert(!end_time.empty());
-        if (end_time.size() > 10)
-            end = TTLOG2micros(end_time.c_str(), end_time.size(), nullptr);
+        if (end_time[1] == ':' || end_time[2] == ':')
+        {
+            end = HMS2micros(end_time.c_str(), end_time.size());
+            if (end == 0)
+            {
+                std::cerr << "Could not parse start_time" << std::endl;
+                return false;
+            }
+            if (end)
+                end += start;
+        }
         else
-            end = HMS2micros(end_time.c_str(), end_time.size()) + start;
+        {
+            end = TTLOG2micros(end_time.c_str(), end_time.size(), nullptr);
+            if (end == 0)
+            {
+                std::cerr << "Could not parse end_time" << std::endl;
+                return false;
+            }
+        }
         if (end == start)
         {
             std::cerr << "time range is zero" << std::endl;
