@@ -1,5 +1,6 @@
 BUGS
-
+* Implement read-ahead
+* readline() should read across buffers
 
 IDEAS
 

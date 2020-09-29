@@ -13,6 +13,7 @@ There are three different commands for this program: list, cat and search
 list 
     Lists the logfiles giving thier starting and ending timestamps for the contents
     of the files, as well as the duration and compressed/decompressed file size. 
+    You can also query which logfile a timestamp resides in.
 
 cat 
     Will send to stdout a time range of the logs. Optionally, the output can be split
@@ -144,8 +145,6 @@ logfind search logname [-1] [--script file] [--before spec] [--after spec] [patt
         logfind list OC_cme.log "2020-07-04 03:00:10" 
             Locate the logfile that contains the given timestamp
 
-        logfind list OC_cme.log "2020-07" 
-            List the logs for the month of July
 
 
                                 SCRIPT FILE
@@ -159,16 +158,15 @@ a set of associated actions.
 
 A pattern is a fixed string, regex is not supported.
 
-The repo contains some canned scripts.
+The repo contains some canned scripts:
+    oc.lf
+        Script to locate certain startup logs
 
-oc.lf
-    Script to locate certain startup logs
+    find-orders.lf
+        Helpful script for finding and printing execution reports.
 
-find-orders.lf
-    Helpful script for finding and printing execution reports.
-
-find-nos.lf
-    Script for finding the NOS of an order
+    find-nos.lf
+        Script for finding the NOS of an order
 
 
 SYNTAX
@@ -213,7 +211,7 @@ ACTIONS
                             ending position is n characters from the end of the line.
                 ${line:m,n} Print the line columns m through n. Negative numbers apply as above.
                 ${time}     If the match line contains a timestamp, print it as the number
-                            of microseconds. The line's timestamp must be in TTLOG format
+                            of microseconds (unix epoch time). The line's timestamp must be in TTLOG format
                 ${rotate-time} If the file has been rotated, print time of rotation in TTLOG format
                 ${filename} Print the current filename
                 ${varname}  Print the contents of "varname". Some actions can set data into a variable,
@@ -404,6 +402,12 @@ SPECIAL PATTERNS
 NOTES
     See https://github.com/mischasan/aho-corasick
     for original aho-corasick algorithm code I stole.
+
+BUGS
+    logfind reads data into 1MB buffers, which are placed into an LRU cache. When a match occurs
+    printing the line will access this cache to print the line. However, I currently do not have 
+    read-ahead implemented, so if a match occurs and the end of the line has not been read yet,
+    the line will be truncated when printed.
 
     I have not used flex/bison for the parser, but hand coded it. This may change in the future
     but as of now, it is rather crude and sensitive to syntax errors and may crash if not correct.
