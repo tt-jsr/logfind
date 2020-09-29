@@ -11,7 +11,7 @@ namespace logfind
         if (start == 0)
             return true;
         if (end == 0)
-            return start <= fi.timestamp;
+            return start >= fi.timestamp && start < fi.rotatetime;
         if (start <= fi.timestamp && end > fi.rotatetime)
             return true;
         if (start >= fi.timestamp && start < fi.rotatetime)
@@ -116,7 +116,7 @@ namespace logfind
             }
         }
 
-        if(files.size()>2 && first && last)
+        if(count > 1 && files.size()>2 && first && last)
         {
             std::cout << "Summary" << std::endl;
             // The summary

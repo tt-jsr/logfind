@@ -46,9 +46,9 @@ logfind list logfile time [end-time]
         e.g. "OC_cme.log" will include "OC_cme.log" as well as all log rotations of
         that logfile.
 
-    start-time
-        If a timestamp (TTLOG format: "YYYY-MM-DD hh:mm:ss") is given, it will output the
-        name of the file containing that timestamp. 
+    time
+        If a timestamp (TTLOG format: "YYYY-MM-DD hh:mm:ss") is given and end-time is not, 
+        it will output the name of the file containing that timestamp. 
 
     end-time  (optional)
         Stop the list at the given time.
